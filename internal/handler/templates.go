@@ -103,6 +103,7 @@ func (h *Handler) templateFuncs() template.FuncMap {
 			return out
 		},
 		"join":       strings.Join,
+		"action":     actionLabel,
 		"shiftMonth": shiftMonth,
 		// barWidth is a progress bar's filled share, 0-100, as an SVG width
 		// attribute -- an attribute, not a style, so the CSP stays strict.
@@ -132,6 +133,29 @@ func (h *Handler) templateFuncs() template.FuncMap {
 			return t.UTC().Format("2 Jan 2006 15:04") + " UTC"
 		},
 	}
+}
+
+// actionLabels turn audit log action codes into words for the activity page.
+var actionLabels = map[string]string{
+	"category.create":  "Created category",
+	"category.update":  "Changed category",
+	"category.archive": "Archived a category",
+	"category.restore": "Restored a category",
+	"category.starter": "Added the starter categories",
+	"rule.create":      "Created rule",
+	"rule.update":      "Changed rule",
+	"rule.delete":      "Deleted rule",
+	"rule.apply":       "Applied a rule to",
+	"target.set":       "Set a target",
+	"target.copy":      "Copied targets from",
+	"account.update":   "Changed account",
+}
+
+func actionLabel(code string) string {
+	if l, ok := actionLabels[code]; ok {
+		return l
+	}
+	return code
 }
 
 // renderPartial executes one partial on its own, for an htmx swap into a page

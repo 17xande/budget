@@ -23,9 +23,14 @@ import (
 	"github.com/17xande-dev/budget/internal/db"
 	"github.com/17xande-dev/budget/internal/handler"
 	"github.com/17xande-dev/budget/internal/ledger"
+	"github.com/17xande-dev/budget/internal/mcpserver"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"golang.org/x/time/rate"
 )
+
+// version is reported to MCP clients; set at build time with
+// -ldflags "-X main.version=...".
+var version = "dev"
 
 func main() {
 	cfg, err := config.Load()
@@ -79,7 +84,8 @@ func serve(cfg config.Config) error {
 		return fmt.Errorf("setup token: %w", err)
 	}
 
-	h, err := handler.New(users, ledger.NewStore(database), budget.NewStore(database), handler.Config{
+	led, bud := ledger.NewStore(database), budget.NewStore(database)
+	h, err := handler.New(users, led, bud, handler.Config{
 		CookieSecure: cfg.CookieSecure,
 		SessionTTL:   cfg.SessionTTL,
 	})
@@ -93,7 +99,9 @@ func serve(cfg config.Config) error {
 	trusted := middleware.ParseTrustedProxies(cfg.TrustedProxies)
 	secretLimit := middleware.NewLimiter(rate.Every(10*time.Second), 10).ByIP(trusted)
 
-	app := h.Server(middleware.RequireUser(users), secretLimit)
+	mcp := mcpserver.New(mcpserver.Deps{Users: users, Ledger: led, Budget: bud, Trusted: trusted, Version: version})
+
+	app := h.Server(middleware.RequireUser(users), secretLimit, mcp.Handler())
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

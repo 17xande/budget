@@ -54,7 +54,7 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	limit := middleware.NewLimiter(rate.Inf, 1).ByIP(nil)
-	srv := httptest.NewServer(h.Server(middleware.RequireUser(users), limit))
+	srv := httptest.NewServer(h.Server(middleware.RequireUser(users), limit, nil))
 	t.Cleanup(srv.Close)
 	return &env{t: t, srv: srv, users: users, h: h}
 }

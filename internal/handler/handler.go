@@ -82,6 +82,8 @@ var notices = map[string]string{
 	"imported":             "Import finished. Each file's result is in the history below.",
 	"copied":               "Copied last month's targets into any category that had none.",
 	"rule_saved":           "Rule saved.",
+	"token_revoked":        "Token revoked. Anything using it stops working now.",
+	"undone":               "Undone.",
 	"rule_deleted":         "Rule deleted. Transactions it categorised keep their category.",
 	"rule_applied_none":    "Rule saved. No uncategorised transactions matched it.",
 	"rule_applied_one":     "Rule saved and applied to 1 uncategorised transaction.",
@@ -170,6 +172,11 @@ func (h *Handler) Register(mux *http.ServeMux, protect, limit func(http.Handler)
 	route("POST /rules/{id}/delete", h.RuleDelete)
 	route("POST /rules/{id}/apply", h.RuleApply)
 	route("GET /settings", h.Settings)
+	route("GET /tokens", h.Tokens)
+	route("POST /tokens", h.TokenCreate, limit)
+	route("POST /tokens/{id}/revoke", h.TokenRevoke)
+	route("GET /activity", h.Activity)
+	route("POST /activity/{id}/undo", h.Undo)
 	route("GET /import", h.ImportPage)
 	route("POST /import", h.ImportUpload)
 	route("GET /accounts", h.Accounts)

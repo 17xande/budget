@@ -13,7 +13,8 @@ import (
 // runs -- the order of these layers is itself something worth testing.
 //
 // protect is RequireUser; limit is the per-IP limiter for secret-verifying routes.
-func (h *Handler) Server(protect, limit func(http.Handler) http.Handler) http.Handler {
+// mcpHandler, when not nil, is the MCP endpoint (internal/mcpserver).
+func (h *Handler) Server(protect, limit func(http.Handler) http.Handler, mcpHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	h.Register(mux, protect, limit)
 
@@ -31,11 +32,22 @@ func (h *Handler) Server(protect, limit func(http.Handler) http.Handler) http.Ha
 	csrf.SetIsTLSFunc(func(*http.Request) bool { return h.cookieSecure })
 	csrf.SetBaseCookie(http.Cookie{Path: "/", HttpOnly: true, Secure: h.cookieSecure, SameSite: http.SameSiteLaxMode})
 
+	// The MCP endpoint sits beside the CSRF layer, not inside it: it is
+	// authenticated by a bearer token alone, never a cookie, so there is no
+	// ambient credential for a forged request to ride on -- and nosurf would
+	// refuse every MCP client, which sends no CSRF token. A test pins these two
+	// lines, so nothing else gets mounted outside nosurf by accident.
+	root := http.NewServeMux()
+	if mcpHandler != nil {
+		root.Handle("/mcp", mcpHandler)
+	}
+	root.Handle("/", csrf)
+
 	// Security headers outermost, so they are on every response: a CSRF refusal
 	// and a 404 included. The body limit sits outside the CSRF layer because
 	// nosurf reads the form -- a whole multipart upload -- before any handler
 	// runs, so a limit inside a handler would come too late.
-	return middleware.SecurityHeaders(limitBodies(csrf))
+	return middleware.SecurityHeaders(limitBodies(root))
 }
 
 // maxFormBytes bounds every request body except an import upload. The forms are

@@ -1,0 +1,46 @@
+{{define "content"}}
+
+<p class="back"><a href="/settings">← Settings</a></p>
+<h1>Activity</h1>
+
+<p class="muted">Changes to the budget: who made them, and how.
+{{if .AIOnly}}Showing changes made by AI clients. <a href="/activity?via=all">Show everyone's</a>.
+{{else}}Showing everyone's changes. <a href="/activity">Show only AI changes</a>.{{end}}
+A categorisation can be undone while nobody has changed that transaction since.</p>
+
+{{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+
+{{if .Entries}}
+<div class="scroll-x">
+<table class="activity">
+  <thead><tr><th>When</th><th>Who</th><th>Change</th><th></th></tr></thead>
+  <tbody>
+  {{range .Entries}}
+    <tr>
+      <td class="nowrap when">{{template "time" .When}}</td>
+      <td class="who">{{if .UserName}}{{.UserName}}{{else}}—{{end}}{{if eq .Via "mcp"}} <span class="badge">AI{{if .TokenName}}: {{.TokenName}}{{end}}</span>{{end}}</td>
+      <td class="change">
+        {{if eq .Action "categorise"}}Categorised <q>{{.Description}}</q>: {{if .BeforeName}}{{.BeforeName}}{{else}}none{{end}} → {{if .AfterName}}{{.AfterName}}{{else}}none{{end}}
+        {{else if eq .Action "undo"}}Undid a categorisation of <q>{{.Description}}</q>: back to {{if .AfterName}}{{.AfterName}}{{else}}none{{end}}
+        {{else}}{{action .Action}}{{if and .Before .After}}: {{.Before}} → {{.After}}{{else if .After}}: {{.After}}{{else if .Before}}: {{.Before}}{{end}}{{end}}
+        {{if not .UndoneAt.IsZero}} <span class="badge">undone</span>{{end}}
+      </td>
+      <td class="act">
+        {{if .CanUndo}}
+        <form method="post" action="/activity/{{.ID}}/undo">
+          {{template "csrf" $.CSRFToken}}
+          <input type="hidden" name="return" value="/activity{{if not $.AIOnly}}?via=all{{end}}">
+          <button type="submit" class="quiet">Undo</button>
+        </form>
+        {{end}}
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">Nothing yet.</p>
+{{end}}
+
+{{end}}

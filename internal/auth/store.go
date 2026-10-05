@@ -178,8 +178,8 @@ func (s *Store) CheckUserPassword(id int64, password string) (bool, error) {
 	return CheckPassword(hash, password), nil
 }
 
-// SetPassword replaces a user's password and deletes all their sessions, reporting
-// whether the user exists.
+// SetPassword replaces a user's password and deletes all their sessions and API
+// tokens, reporting whether the user exists.
 //
 // The two go together: a password change that left existing sessions alive would
 // not actually shut anyone out, which is the main reason someone changes one.
@@ -203,6 +203,11 @@ func (s *Store) SetPassword(id int64, passwordHash string, mustChange bool) (boo
 	}
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = ?`, id); err != nil {
 		return false, fmt.Errorf("clear sessions for user %d: %w", id, err)
+	}
+	// API tokens too, in the same transaction: an AI client holding one is as
+	// much "someone with the old password" as a browser holding a session.
+	if _, err := tx.Exec(`DELETE FROM api_tokens WHERE user_id = ?`, id); err != nil {
+		return false, fmt.Errorf("clear api tokens for user %d: %w", id, err)
 	}
 	return true, tx.Commit()
 }

@@ -47,6 +47,11 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
   person or an AI chose (`category_source`).
 - **Schema changes to an existing table need `requiredColumns`** in internal/db,
   so an old database refuses to start with a clear message.
+- **MCP tools are registered through `add` in internal/mcpserver** with an explicit
+  read-only flag; every write tool needs a case in `TestEveryWriteToolIsAudited`, and
+  must write the audit log (through internal/budget, or `Budget.Record`).
+- **Only `/mcp` is mounted outside nosurf** (`TestOnlyMCPIsOutsideCSRF`). It must stay
+  bearer-only; never let it accept the session cookie.
 - **Never put real bank data in the repo.** Fixtures are synthetic; .gitignore
   blocks csv/ofx/zip outside testdata, but check what you add.
 - **FNB login must never spoof the browser** (user agent, fingerprint, Radware

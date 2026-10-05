@@ -14,8 +14,8 @@ distroless container behind Traefik.
 | 1 | Scaffold: server, database, sign-in for two people, build, container | done |
 | 2 | Ledger + manual CSV/OFX import | done |
 | 3 | Categories, rules, monthly targets, dashboard | done |
-| 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | next |
-| 5 | Daily automatic FNB fetch | |
+| 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
+| 5 | Daily automatic FNB fetch | next |
 | 6 | Backups, export, hardening | |
 
 ## Running it
@@ -65,6 +65,7 @@ internal/importer       FNB CSV / OFX / ZIP parsers (pure; fixture-tested)
 internal/ledger         accounts, transactions, import history
 internal/budget         categories, rules, targets, the month summary, audit log
 internal/money          exact decimal <-> cents
+internal/mcpserver      the /mcp endpoint for AI clients (docs/mcp.md)
 internal/validate       form validation shared by the web forms and the CLI
 internal/middleware     security headers/CSP, session enforcement, rate limits
 internal/handler        routes, pages, templates/, static/ (all go:embed'ed)
@@ -83,11 +84,12 @@ dependency, and why:
 | `golang.org/x/crypto` | argon2id | Password hashing is not something to hand-roll. |
 | `justinas/nosurf` | CSRF tokens and origin checks | Same. |
 | `golang.org/x/time/rate` | token buckets for the rate limits | Small, from the Go team. |
+| `modelcontextprotocol/go-sdk` | the MCP endpoint (phase 4) | The official SDK. The protocol is still moving; hand-rolling it means owning that churn, and the SDK infers tool schemas from Go structs. Already proven in gostore. |
 
 Deliberately not taken: a router (the stdlib mux does methods and wildcards), a
 validation library, an ORM or sqlc (a handful of hand-written typed queries), a
 CSS framework, a chart library (charts will be server-rendered SVG), web fonts.
-Phase 4 adds the official MCP Go SDK (`modelcontextprotocol/go-sdk`) for AI access, and Phase 5 adds `chromedp` for the FNB login; see below.
+Phase 5 adds `chromedp` for the FNB login; see below.
 
 **SQLite, one instance.** It changes to Postgres only if a second app instance or
 another process needs the database. STRICT tables throughout; no migrations while

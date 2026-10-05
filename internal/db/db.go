@@ -50,6 +50,22 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
+-- API tokens: a person's credential for an AI client acting as them over MCP.
+-- Sessions in every way that matters (random, only the sha256 stored, revocable
+-- because the row is the token) but long-lived, several per person, named, and
+-- shown exactly once. A password change deletes them with the sessions.
+CREATE TABLE IF NOT EXISTS api_tokens (
+	id           INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	name         TEXT NOT NULL,
+	token_hash   TEXT NOT NULL UNIQUE,
+	created_at   TEXT NOT NULL,
+	last_used_at TEXT NOT NULL DEFAULT '',
+	expires_at   TEXT NOT NULL
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_api_tokens_user ON api_tokens(user_id);
+
 -- The first-run bootstrap: a deployment with no users issues a one-time token,
 -- printed to the log, which claims the first account at /setup. A single row
 -- (CHECK id = 1) so a second boot conflicts instead of replacing a live token,
