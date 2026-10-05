@@ -1,0 +1,36 @@
+{{define "content"}}
+
+<h1>Accounts</h1>
+
+<p class="muted">Accounts appear the first time an import mentions them. The kind decides
+how reports treat them: money moved into savings or paid onto a loan is not spending.</p>
+
+{{if not .Accounts}}
+<p>No accounts yet. <a href="/import">Import FNB exports</a> first.</p>
+{{end}}
+
+{{range .Accounts}}
+<form method="post" action="/accounts/{{.ID}}" class="panel">
+  {{template "csrf" $.CSRFToken}}
+  <p class="muted small">FNB {{.Ref}} · {{.TxnCount}} transactions{{if .FirstDate}}, {{date .FirstDate}} to {{date .LastDate}}{{end}}</p>
+  {{if eq .ID $.ErrorID}}<p class="error" role="alert">{{$.Error}}</p>{{end}}
+  <div class="field-row">
+    <div class="field">
+      <label for="name-{{.ID}}">Name</label>
+      <input id="name-{{.ID}}" name="name" value="{{.Name}}" size="28" maxlength="60" required autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="kind-{{.ID}}">Kind</label>
+      <select id="kind-{{.ID}}" name="kind">
+        {{$kind := .Kind}}
+        {{range $.Kinds}}<option value="{{.}}"{{if eq . $kind}} selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </div>
+    <div class="field">
+      <button type="submit">Save</button>
+    </div>
+  </div>
+</form>
+{{end}}
+
+{{end}}

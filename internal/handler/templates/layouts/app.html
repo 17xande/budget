@@ -11,6 +11,9 @@
     <a class="brand" href="/">Budget</a>
     <nav>
       <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>Overview</a>
+      <a href="/transactions"{{if eq .Nav "transactions"}} aria-current="page"{{end}}>Transactions</a>
+      <a href="/import"{{if eq .Nav "import"}} aria-current="page"{{end}}>Import</a>
+      <a href="/accounts"{{if eq .Nav "accounts"}} aria-current="page"{{end}}>Accounts</a>
       <a href="/members"{{if eq .Nav "members"}} aria-current="page"{{end}}>Members</a>
       <a href="/password"{{if eq .Nav "password"}} aria-current="page"{{end}}>Your password</a>
     </nav>

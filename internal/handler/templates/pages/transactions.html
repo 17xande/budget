@@ -1,0 +1,75 @@
+{{define "content"}}
+
+<h1>Transactions</h1>
+
+{{if not .Accounts}}
+<p>Nothing imported yet. <a href="/import">Import FNB exports</a> to see transactions here.</p>
+{{else}}
+{{/* A GET form with a real submit button: no onchange auto-submit, which the CSP
+     would silently refuse. */}}
+<form class="filters" method="get" action="/transactions">
+  <div class="field">
+    <label for="month">Month</label>
+    <select id="month" name="month">
+      {{range .Months}}<option value="{{.}}"{{if eq . $.Month}} selected{{end}}>{{month .}}</option>{{end}}
+      <option value="all"{{if eq .Month ""}} selected{{end}}>All months</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="account">Account</label>
+    <select id="account" name="account">
+      <option value="">All accounts</option>
+      {{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $.AccountID}} selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </div>
+  <div class="field">
+    <label for="q">Description</label>
+    <input id="q" name="q" type="search" value="{{.Query}}" placeholder="e.g. Checkers" autocomplete="off">
+  </div>
+  <div class="field">
+    <button type="submit">Show</button>
+  </div>
+</form>
+
+<dl class="totals">
+  <div><dt>In</dt><dd class="{{moneyClass .Totals.InCents}}">{{money .Totals.InCents}}</dd></div>
+  <div><dt>Out</dt><dd class="{{moneyClass .Totals.OutCents}}">{{money .Totals.OutCents}}</dd></div>
+  <div><dt>Net</dt><dd class="{{moneyClass .Totals.NetCents}}">{{money .Totals.NetCents}}</dd></div>
+  <div><dt>Transactions</dt><dd class="num">{{.Totals.Count}}</dd></div>
+</dl>
+<p class="muted small">Totals include transfers between your own accounts; categories
+will separate those out.</p>
+
+{{if .Truncated}}<p class="notice">Showing the latest {{len .Txns}} of {{.Totals.Count}}; choose a month to see the rest.</p>{{end}}
+
+{{if .Txns}}
+<div class="scroll-x">
+<table class="txns">
+  <thead>
+    <tr>
+      <th>Date</th>
+      {{if not .OneAccount}}<th class="acct">Account</th>{{end}}
+      <th>Description</th>
+      <th class="num">Amount</th>
+      {{if .OneAccount}}<th class="num">Balance</th>{{end}}
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Txns}}
+    <tr>
+      <td class="date nowrap">{{date .PostedOn}}</td>
+      {{if not $.OneAccount}}<td class="acct">{{.AccountName}}</td>{{end}}
+      <td>{{.Description}}</td>
+      <td class="{{moneyClass .AmountCents}} nowrap">{{money .AmountCents}}</td>
+      {{if $.OneAccount}}<td class="num nowrap">{{if .BalanceCents.Valid}}{{money .BalanceCents.Int64}}{{else}}—{{end}}</td>{{end}}
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">No transactions match.</p>
+{{end}}
+{{end}}
+
+{{end}}

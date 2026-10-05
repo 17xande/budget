@@ -12,15 +12,6 @@ import (
 	"github.com/17xande-dev/budget/internal/validate"
 )
 
-type homeData struct {
-	page
-}
-
-// Home is the overview. Until the ledger exists (phase 2) it says what comes next.
-func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "home.html", homeData{page: newPage(r, "Overview", "home")})
-}
-
 type membersData struct {
 	page
 	Members []auth.User

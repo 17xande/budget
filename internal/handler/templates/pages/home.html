@@ -2,9 +2,33 @@
 
 <h1>Overview</h1>
 
+{{if not .Accounts}}
 <p>Hello, {{.Me.Name}}. There are no transactions yet.</p>
+<p><a class="button" href="/import">Import FNB exports</a></p>
+<p class="muted">Download transaction history from FNB online banking (CSV or OFX; the ZIP
+as it downloads is fine) and upload it. Categories and monthly targets come next, then
+the daily automatic fetch.</p>
+{{else}}
+<div class="scroll-x">
+<table>
+  <thead>
+    <tr><th>Account</th><th class="num">Transactions</th><th>Latest</th></tr>
+  </thead>
+  <tbody>
+  {{range .Accounts}}
+    <tr>
+      <td><a href="/transactions?month=all&amp;account={{.ID}}">{{.Name}}</a></td>
+      <td class="num">{{.TxnCount}}</td>
+      <td>{{if .LastDate}}{{date .LastDate}}{{else}}—{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
 
-<p class="muted">Importing FNB exports is the next thing this budget learns; after that,
-categories and monthly targets, then the daily automatic fetch.</p>
+<h2>Recent imports</h2>
+{{template "imports" .Imports}}
+<p><a href="/import">Import more</a> · <a href="/transactions">All transactions</a></p>
+{{end}}
 
 {{end}}

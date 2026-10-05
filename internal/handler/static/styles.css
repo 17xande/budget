@@ -125,8 +125,9 @@ body {
 
   nav {
     display: flex;
+    flex-wrap: wrap;   /* six links do not fit a phone on one line */
     align-items: center;
-    gap: var(--gap-md);
+    gap: var(--gap-xs) var(--gap-md);
     font-size: var(--text-small);
 
     a {
@@ -444,10 +445,13 @@ button,
 
   > .field {
     margin-block-end: 0;
-    max-width: none;
+    max-width: 100%;
+    min-width: 0;
 
     > :where(input, select) {
       width: auto;
+      /* size= asks for a width; a phone may not have it to give. */
+      max-width: 100%;
     }
   }
 }
@@ -562,6 +566,88 @@ table {
 
 .scroll-x {
   overflow-x: auto;
+}
+
+/* --- Ledger ------------------------------------------------------------- */
+
+/* Money in takes the accent; money out stays ink. A month of spending is mostly
+   out, and a table that is mostly red reads as an alarm rather than a list. */
+.in {
+  color: var(--accent);
+}
+
+/* The transaction filters: one row on a wide screen, wrapping on a phone, the
+   button aligned with the controls rather than their labels. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm) var(--gap);
+  align-items: end;
+  margin-block-end: var(--gap-md);
+
+  > .field {
+    margin-block-end: 0;
+    max-width: none;
+    flex: 0 1 auto;
+  }
+
+  input[type="search"] {
+    width: clamp(10rem, 40vw, 18rem);
+  }
+}
+
+/* In / out / net / count, as a strip of figures. */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--gap-sm);
+  margin: 0 0 var(--gap-sm);
+
+  > div {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: var(--gap-sm) var(--gap);
+  }
+
+  dt {
+    font-size: var(--text-small);
+    color: var(--ink-soft);
+  }
+
+  dd {
+    margin: 0;
+    font-size: var(--text-large);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: start;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* On a phone the amount is what matters and must be on screen without scrolling
+   the table; the account column gives way (the account filter still covers it). */
+@media (max-width: 40rem) {
+  .txns .acct {
+    display: none;
+  }
+
+  /* "Sat 3 Oct" over "2026" rather than one long line that pushes the amount
+     off screen. */
+  .txns .date {
+    white-space: normal;
+  }
+}
+
+/* A long file name breaks anywhere rather than widening the table. */
+.break {
+  overflow-wrap: anywhere;
+}
+
+.small {
+  font-size: var(--text-small);
 }
 
 /* --- Utility ------------------------------------------------------------- */

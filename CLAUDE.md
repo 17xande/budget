@@ -33,6 +33,13 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
 - **Times are UTC RFC3339 TEXT.** Render with the `time` partial, which labels UTC
   and lets `src/ts/localtime.ts` localise it. Never show an unlabelled UTC time.
 - **STRICT cannot be retrofitted**, and there is no startup ALTER by design.
+- **Dedup is content-based** (account, date, amount, collapsed description,
+  occurrence index): `ledger.DedupKeys`. Never key on FITID. Any change to how
+  descriptions are normalised changes every key and would re-import everything,
+  so it needs a recreate-db or a migration.
+- **After touching a parser, run the real-export check** if you have downloads:
+  `FNB_REAL_EXPORTS=~/Downloads go test -run TestRealExports -v ./internal/importer`.
+  The synthetic fixtures missed the OFX `&amp;` quirk; real files caught it.
 - **Never put real bank data in the repo.** Fixtures are synthetic; .gitignore
   blocks csv/ofx/zip outside testdata, but check what you add.
 - **FNB login must never spoof the browser** (user agent, fingerprint, Radware

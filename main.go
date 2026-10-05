@@ -21,6 +21,7 @@ import (
 	"github.com/17xande-dev/budget/internal/config"
 	"github.com/17xande-dev/budget/internal/db"
 	"github.com/17xande-dev/budget/internal/handler"
+	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"golang.org/x/time/rate"
 )
@@ -77,7 +78,7 @@ func serve(cfg config.Config) error {
 		return fmt.Errorf("setup token: %w", err)
 	}
 
-	h, err := handler.New(users, handler.Config{
+	h, err := handler.New(users, ledger.NewStore(database), handler.Config{
 		CookieSecure: cfg.CookieSecure,
 		SessionTTL:   cfg.SessionTTL,
 	})

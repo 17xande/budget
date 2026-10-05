@@ -32,6 +32,29 @@ func (h *Handler) Server(protect, limit func(http.Handler) http.Handler) http.Ha
 	csrf.SetBaseCookie(http.Cookie{Path: "/", HttpOnly: true, Secure: h.cookieSecure, SameSite: http.SameSiteLaxMode})
 
 	// Security headers outermost, so they are on every response: a CSRF refusal
-	// and a 404 included.
-	return middleware.SecurityHeaders(csrf)
+	// and a 404 included. The body limit sits outside the CSRF layer because
+	// nosurf reads the form -- a whole multipart upload -- before any handler
+	// runs, so a limit inside a handler would come too late.
+	return middleware.SecurityHeaders(limitBodies(csrf))
+}
+
+// maxFormBytes bounds every request body except an import upload. The forms are
+// a few fields; nothing legitimate comes close.
+const maxFormBytes = 1 << 20
+
+// limitBodies refuses an oversized body up front when it declares its length,
+// and caps it as it is read when it does not.
+func limitBodies(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limit := int64(maxFormBytes)
+		if r.Method == http.MethodPost && r.URL.Path == "/import" {
+			limit = MaxUploadBytes
+		}
+		if r.ContentLength > limit {
+			http.Error(w, "That upload is too large.", http.StatusRequestEntityTooLarge)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		next.ServeHTTP(w, r)
+	})
 }

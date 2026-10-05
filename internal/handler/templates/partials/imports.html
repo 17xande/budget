@@ -1,0 +1,30 @@
+{{/* The import history table, on the import page and the overview. */}}
+{{define "imports"}}
+{{if .}}
+<div class="scroll-x">
+<table>
+  <thead>
+    <tr><th>When</th><th>File</th><th>Account</th><th class="num">New</th><th class="num">Already had</th><th>By</th></tr>
+  </thead>
+  <tbody>
+  {{range .}}
+    <tr>
+      <td>{{template "time" .CreatedAt}}</td>
+      <td class="break">{{.Filename}}</td>
+      {{if .Error}}
+      <td colspan="3"><span class="badge problem">failed</span> {{.Error}}</td>
+      {{else}}
+      <td>{{.AccountName}}</td>
+      <td class="num">{{.Inserted}}</td>
+      <td class="num">{{.Skipped}}</td>
+      {{end}}
+      <td>{{if .UserName}}{{.UserName}}{{else}}automatic{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">Nothing imported yet.</p>
+{{end}}
+{{end}}

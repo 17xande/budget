@@ -62,6 +62,55 @@ CREATE TABLE IF NOT EXISTS setup (
 	created_at  TEXT NOT NULL,
 	consumed_at TEXT NOT NULL DEFAULT ''
 ) STRICT;
+
+-- A bank account, created the first time an import names it. ref is how every
+-- FNB format identifies it: the account number, or the masked card number
+-- ("400000******1234") for a credit card.
+CREATE TABLE IF NOT EXISTS accounts (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	ref        TEXT NOT NULL UNIQUE,
+	name       TEXT NOT NULL,
+	kind       TEXT NOT NULL CHECK (kind IN ('cheque', 'credit', 'savings', 'loan', 'other')),
+	created_at TEXT NOT NULL
+) STRICT;
+
+-- One row per statement imported, or per file that failed to import, so the
+-- history shows what happened to every upload and every daily fetch.
+CREATE TABLE IF NOT EXISTS imports (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	source     TEXT NOT NULL CHECK (source IN ('upload', 'fnb')),
+	filename   TEXT NOT NULL,
+	format     TEXT NOT NULL DEFAULT '',
+	account_id INTEGER REFERENCES accounts(id),
+	user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+	inserted   INTEGER NOT NULL DEFAULT 0,
+	skipped    INTEGER NOT NULL DEFAULT 0,
+	error      TEXT NOT NULL DEFAULT '',
+	created_at TEXT NOT NULL
+) STRICT;
+
+-- posted_on is a calendar date (YYYY-MM-DD), not an instant: FNB's dates are
+-- South African days and are never converted between timezones. Money is integer
+-- cents.
+--
+-- dedup_key makes importing idempotent across formats and exports: see
+-- ledger.DedupKeys. Never FITID, which collides for identical same-day purchases
+-- and differs between FNB's two OFX exports.
+CREATE TABLE IF NOT EXISTS transactions (
+	id            INTEGER PRIMARY KEY AUTOINCREMENT,
+	account_id    INTEGER NOT NULL REFERENCES accounts(id),
+	posted_on     TEXT NOT NULL CHECK (posted_on GLOB '[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]'),
+	amount_cents  INTEGER NOT NULL,
+	description   TEXT NOT NULL,
+	balance_cents INTEGER,
+	fitid         TEXT NOT NULL DEFAULT '',
+	import_id     INTEGER NOT NULL REFERENCES imports(id),
+	dedup_key     TEXT NOT NULL UNIQUE,
+	created_at    TEXT NOT NULL
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(posted_on);
+CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, posted_on);
 `
 
 // Open opens the database at path (creating it if needed) and applies the schema.

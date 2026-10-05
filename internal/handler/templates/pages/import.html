@@ -1,0 +1,30 @@
+{{define "content"}}
+
+<h1>Import</h1>
+
+{{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+
+<form method="post" action="/import" enctype="multipart/form-data">
+  {{template "csrf" .CSRFToken}}
+  <fieldset class="panel">
+    <legend>FNB exports</legend>
+    <div class="field">
+      <label for="files">Files</label>
+      <input id="files" name="files" type="file" multiple required accept=".zip,.csv,.ofx">
+      <small class="hint">CSV or OFX from FNB's transaction history, or the ZIP exactly as
+      it downloads. Several at once is fine. Anything already imported is recognised and
+      skipped, so overlapping exports and repeats are safe.</small>
+    </div>
+    <div class="actions">
+      <button type="submit">Import</button>
+    </div>
+  </fieldset>
+</form>
+
+<p class="muted">FNB's online banking only reaches back about three months. Older
+history can only come from exports saved at the time; import those here too.</p>
+
+<h2>History</h2>
+{{template "imports" .Imports}}
+
+{{end}}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"github.com/justinas/nosurf"
 	"golang.org/x/time/rate"
@@ -21,6 +22,7 @@ type Config struct {
 
 type Handler struct {
 	users        *auth.Store
+	ledger       *ledger.Store
 	cookieSecure bool
 	sessionTTL   time.Duration
 
@@ -38,9 +40,10 @@ type Handler struct {
 	routes []Route
 }
 
-func New(users *auth.Store, cfg Config) (*Handler, error) {
+func New(users *auth.Store, led *ledger.Store, cfg Config) (*Handler, error) {
 	h := &Handler{
 		users:        users,
+		ledger:       led,
 		cookieSecure: cfg.CookieSecure,
 		sessionTTL:   cfg.SessionTTL,
 		loginByEmail: middleware.NewLimiter(rate.Every(time.Minute), 5),
@@ -73,6 +76,7 @@ type page struct {
 // because rendering the parameter itself is a reflected-content hole.
 var notices = map[string]string{
 	"saved":                "Saved.",
+	"imported":             "Import finished. Each file's result is in the history below.",
 	"member_added":         "Member added. Give them the temporary password; they will choose their own when they first sign in.",
 	"password_changed":     "Password changed. Please sign in again.",
 	"must_change_password": "This password was set for you. Choose your own before continuing.",
@@ -141,6 +145,11 @@ func (h *Handler) Register(mux *http.ServeMux, protect, limit func(http.Handler)
 	}
 
 	route("GET /{$}", h.Home)
+	route("GET /transactions", h.Transactions)
+	route("GET /import", h.ImportPage)
+	route("POST /import", h.ImportUpload)
+	route("GET /accounts", h.Accounts)
+	route("POST /accounts/{id}", h.AccountUpdate)
 	route("GET /members", h.Members)
 	route("POST /members", h.MemberCreate)
 	route("GET "+ownPasswordPath, h.OwnPasswordForm)

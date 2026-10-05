@@ -80,7 +80,11 @@ func (h *Handler) parseTemplates() (map[string]*template.Template, error) {
 // templateFuncs is deliberately tiny.
 func (h *Handler) templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"asset": h.assetURL,
+		"asset":      h.assetURL,
+		"money":      formatMoney,
+		"moneyClass": moneyClass,
+		"month":      monthLabel,
+		"date":       dateLabel,
 		// utc renders a timestamp for a <time> element: the machine-readable
 		// value for its datetime attribute, and a labelled UTC text the page
 		// script (src/ts/localtime.ts) replaces with local time. Without the

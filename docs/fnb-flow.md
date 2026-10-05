@@ -113,6 +113,22 @@ blanks), then `Date, Amount, Balance, Description` and rows
 `YYYY/MM/DD, -123.45, 1234.56, text` — fields separated by `, `, descriptions padded
 with spaces. On the credit card the Balance column is `0`, not a running balance.
 
+**Quirks the real exports taught us** (2026-10-05, Phase 2):
+
+- **OFX escapes SGML entities, CSV does not**: a merchant "A & B" is
+  `A &amp; B` in OFX and `A & B` in the CSV. Undecoded, the same transaction
+  looks different in the two formats and imports twice. The OFX parser decodes
+  entities.
+- **Row order differs by account**: the cheque export is newest first, the
+  credit card's oldest first. Nothing may depend on order.
+- **The card's quick export is not 60 days**: it returned about four months
+  (150 rows, June to October) where the cheque returned 60 days. It looks capped
+  at 150 rows rather than by date.
+
+`FNB_REAL_EXPORTS=~/Downloads go test -run TestRealExports -v ./internal/importer`
+re-checks all of this against real downloads (it logs counts only). Run it
+whenever FNB changes anything.
+
 **Cross-check:** over the window they share, quick OFX, CSV and advanced OFX hold
 identical multisets of (date, amount, whitespace-normalised description). Hence
 deduplication is content-based — account + date + amount + normalised description +
