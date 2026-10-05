@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/budget"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"github.com/justinas/nosurf"
@@ -23,6 +24,7 @@ type Config struct {
 type Handler struct {
 	users        *auth.Store
 	ledger       *ledger.Store
+	budget       *budget.Store
 	cookieSecure bool
 	sessionTTL   time.Duration
 
@@ -40,10 +42,11 @@ type Handler struct {
 	routes []Route
 }
 
-func New(users *auth.Store, led *ledger.Store, cfg Config) (*Handler, error) {
+func New(users *auth.Store, led *ledger.Store, bud *budget.Store, cfg Config) (*Handler, error) {
 	h := &Handler{
 		users:        users,
 		ledger:       led,
+		budget:       bud,
 		cookieSecure: cfg.CookieSecure,
 		sessionTTL:   cfg.SessionTTL,
 		loginByEmail: middleware.NewLimiter(rate.Every(time.Minute), 5),
@@ -77,6 +80,12 @@ type page struct {
 var notices = map[string]string{
 	"saved":                "Saved.",
 	"imported":             "Import finished. Each file's result is in the history below.",
+	"copied":               "Copied last month's targets into any category that had none.",
+	"rule_saved":           "Rule saved.",
+	"rule_deleted":         "Rule deleted. Transactions it categorised keep their category.",
+	"rule_applied_none":    "Rule saved. No uncategorised transactions matched it.",
+	"rule_applied_one":     "Rule saved and applied to 1 uncategorised transaction.",
+	"rule_applied_many":    "Rule saved and applied to the matching uncategorised transactions.",
 	"member_added":         "Member added. Give them the temporary password; they will choose their own when they first sign in.",
 	"password_changed":     "Password changed. Please sign in again.",
 	"must_change_password": "This password was set for you. Choose your own before continuing.",
@@ -146,6 +155,21 @@ func (h *Handler) Register(mux *http.ServeMux, protect, limit func(http.Handler)
 
 	route("GET /{$}", h.Home)
 	route("GET /transactions", h.Transactions)
+	route("POST /transactions/{id}/category", h.Categorise)
+	route("GET /budget/targets", h.Targets)
+	route("POST /budget/targets", h.TargetsSave)
+	route("POST /budget/targets/copy", h.TargetsCopy)
+	route("GET /categories", h.Categories)
+	route("POST /categories", h.CategoryCreate)
+	route("POST /categories/starter", h.CategoryStarter)
+	route("POST /categories/{id}", h.CategoryUpdate)
+	route("POST /categories/{id}/archive", h.CategoryArchive)
+	route("GET /rules", h.Rules)
+	route("POST /rules", h.RuleCreate)
+	route("POST /rules/{id}", h.RuleUpdate)
+	route("POST /rules/{id}/delete", h.RuleDelete)
+	route("POST /rules/{id}/apply", h.RuleApply)
+	route("GET /settings", h.Settings)
 	route("GET /import", h.ImportPage)
 	route("POST /import", h.ImportUpload)
 	route("GET /accounts", h.Accounts)

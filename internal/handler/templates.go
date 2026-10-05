@@ -9,7 +9,11 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strings"
 	"time"
+
+	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/money"
 )
 
 //go:embed templates
@@ -85,6 +89,32 @@ func (h *Handler) templateFuncs() template.FuncMap {
 		"moneyClass": moneyClass,
 		"month":      monthLabel,
 		"date":       dateLabel,
+		"decimal":    money.Decimal,
+		// idle names the expense categories with nothing spent and no target,
+		// so the dashboard can list them in one line instead of a row of
+		// zeros each.
+		"idle": func(lines []budget.Line) []string {
+			var out []string
+			for _, l := range lines {
+				if l.Count == 0 && !l.Target.Valid {
+					out = append(out, l.Name)
+				}
+			}
+			return out
+		},
+		"join":       strings.Join,
+		"shiftMonth": shiftMonth,
+		// barWidth is a progress bar's filled share, 0-100, as an SVG width
+		// attribute -- an attribute, not a style, so the CSP stays strict.
+		"barWidth": func(spent, target int64) int64 {
+			switch {
+			case target <= 0 || spent <= 0:
+				return 0
+			case spent >= target:
+				return 100
+			}
+			return spent * 100 / target
+		},
 		// utc renders a timestamp for a <time> element: the machine-readable
 		// value for its datetime attribute, and a labelled UTC text the page
 		// script (src/ts/localtime.ts) replaces with local time. Without the
@@ -101,6 +131,23 @@ func (h *Handler) templateFuncs() template.FuncMap {
 			}
 			return t.UTC().Format("2 Jan 2006 15:04") + " UTC"
 		},
+	}
+}
+
+// renderPartial executes one partial on its own, for an htmx swap into a page
+// already on screen. Every page set carries the partials, so any one serves. Like
+// render, it buffers first so a template error can still be a 500.
+func (h *Handler) renderPartial(w http.ResponseWriter, status int, name string, data any) {
+	var buf bytes.Buffer
+	if err := h.tmpls["home.html"].ExecuteTemplate(&buf, name, data); err != nil {
+		log.Printf("render partial %s: %v", name, err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	if _, err := buf.WriteTo(w); err != nil {
+		log.Printf("write partial %s: %v", name, err)
 	}
 }
 

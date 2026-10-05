@@ -18,6 +18,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/budget"
 	"github.com/17xande-dev/budget/internal/config"
 	"github.com/17xande-dev/budget/internal/db"
 	"github.com/17xande-dev/budget/internal/handler"
@@ -78,7 +79,7 @@ func serve(cfg config.Config) error {
 		return fmt.Errorf("setup token: %w", err)
 	}
 
-	h, err := handler.New(users, ledger.NewStore(database), handler.Config{
+	h, err := handler.New(users, ledger.NewStore(database), budget.NewStore(database), handler.Config{
 		CookieSecure: cfg.CookieSecure,
 		SessionTTL:   cfg.SessionTTL,
 	})

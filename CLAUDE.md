@@ -40,6 +40,13 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
 - **After touching a parser, run the real-export check** if you have downloads:
   `FNB_REAL_EXPORTS=~/Downloads go test -run TestRealExports -v ./internal/importer`.
   The synthetic fixtures missed the OFX `&amp;` quirk; real files caught it.
+- **`budget.Summary` is the one source of a month's figures**: the dashboard and
+  the MCP summary both read it. Do not compute spending anywhere else.
+- **Every budgeting write goes through `internal/budget` with an `Actor`**, which
+  writes the audit log in the same transaction. Rules never override a category a
+  person or an AI chose (`category_source`).
+- **Schema changes to an existing table need `requiredColumns`** in internal/db,
+  so an old database refuses to start with a clear message.
 - **Never put real bank data in the repo.** Fixtures are synthetic; .gitignore
   blocks csv/ofx/zip outside testdata, but check what you add.
 - **FNB login must never spoof the browser** (user agent, fingerprint, Radware

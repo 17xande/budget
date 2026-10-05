@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"io"
 	"log"
 	"mime/multipart"
@@ -12,32 +13,12 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/17xande-dev/budget/internal/budget"
 	"github.com/17xande-dev/budget/internal/importer"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
+	"github.com/justinas/nosurf"
 )
-
-// --- Overview ----------------------------------------------------------------
-
-type homeData struct {
-	page
-	Accounts []ledger.Account
-	Imports  []ledger.Import
-}
-
-func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	accts, err := h.ledger.Accounts()
-	if err != nil {
-		h.fail(w, "home: accounts", err)
-		return
-	}
-	imports, err := h.ledger.Imports(3)
-	if err != nil {
-		h.fail(w, "home: imports", err)
-		return
-	}
-	h.render(w, http.StatusOK, "home.html", homeData{page: newPage(r, "Overview", "home"), Accounts: accts, Imports: imports})
-}
 
 // --- Transactions --------------------------------------------------------------
 
@@ -49,22 +30,41 @@ var monthRe = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
 
 type txnsData struct {
 	page
-	Months    []string
-	Accounts  []ledger.Account
-	Month     string // "" means all months
-	AccountID int64
-	Query     string
-	Txns      []ledger.Txn
-	Totals    ledger.Totals
-	// Truncated is true when Totals counts more rows than Txns holds.
+	Months     []string
+	Accounts   []ledger.Account
+	Categories []budget.Category
+	Month      string // "" means all months
+	AccountID  int64
+	// Category is the category filter as the select holds it: "", "none" for
+	// uncategorised, or a category id.
+	Category string
+	Query    string
+	Rows     []txnRow
+	Totals   ledger.Totals
+	// Truncated is true when Totals counts more rows than Rows holds.
 	Truncated bool
 	// OneAccount shows the balance column, which only means anything for a
 	// single account.
 	OneAccount bool
 }
 
-// Transactions lists transactions by month, account and description. The month
-// defaults to the latest one with data, so the page opens on something useful.
+// txnRow is one table row: the transaction, and what its category form needs.
+// The row is also the htmx response to a categorisation, so it carries
+// everything itself rather than reaching into the page.
+type txnRow struct {
+	ledger.Txn
+	Categories []budget.Category
+	CSRFToken  string
+	Return     string
+	OneAccount bool
+	// Saved marks a row just changed by an htmx save, for a brief highlight.
+	Saved bool
+	// Error explains a refused change, shown in the row itself.
+	Error string
+}
+
+// Transactions lists transactions by month, account, category and description,
+// each with its category form. The month defaults to the latest with data.
 func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 	months, err := h.ledger.Months()
 	if err != nil {
@@ -74,6 +74,11 @@ func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 	accts, err := h.ledger.Accounts()
 	if err != nil {
 		h.fail(w, "transactions: accounts", err)
+		return
+	}
+	cats, err := h.budget.Categories(true)
+	if err != nil {
+		h.fail(w, "transactions: categories", err)
 		return
 	}
 
@@ -95,6 +100,19 @@ func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	category := ""
+	switch c := q.Get("category"); c {
+	case "none":
+		f.Uncategorised, category = true, "none"
+	default:
+		if id, err := strconv.ParseInt(c, 10, 64); err == nil {
+			for _, cat := range cats {
+				if cat.ID == id {
+					f.CategoryID, category = id, c
+				}
+			}
+		}
+	}
 
 	txns, err := h.ledger.Transactions(f, maxListed)
 	if err != nil {
@@ -106,13 +124,123 @@ func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, "transactions: totals", err)
 		return
 	}
+	p := newPage(r, "Transactions", "transactions")
+	ret := "/transactions"
+	if r.URL.RawQuery != "" {
+		ret += "?" + r.URL.RawQuery
+	}
+	rows := make([]txnRow, len(txns))
+	for i, t := range txns {
+		rows[i] = txnRow{Txn: t, Categories: offered(cats, t.CategoryID.Int64), CSRFToken: p.CSRFToken, Return: ret, OneAccount: f.AccountID != 0}
+	}
 	h.render(w, http.StatusOK, "transactions.html", txnsData{
-		page:   newPage(r, "Transactions", "transactions"),
-		Months: months, Accounts: accts,
-		Month: f.Month, AccountID: f.AccountID, Query: f.Query,
-		Txns: txns, Totals: totals, Truncated: totals.Count > len(txns),
+		page:   p,
+		Months: months, Accounts: accts, Categories: active(cats),
+		Month: f.Month, AccountID: f.AccountID, Category: category, Query: f.Query,
+		Rows: rows, Totals: totals, Truncated: totals.Count > len(txns),
 		OneAccount: f.AccountID != 0,
 	})
+}
+
+// active is the categories a form offers: the unarchived ones.
+func active(cats []budget.Category) []budget.Category {
+	var out []budget.Category
+	for _, c := range cats {
+		if !c.Archived {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// offered is active plus the transaction's current category if it has since
+// been archived, so the select still shows the truth rather than a blank.
+func offered(cats []budget.Category, current int64) []budget.Category {
+	out := active(cats)
+	for _, c := range cats {
+		if c.Archived && c.ID == current {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// Categorise sets one transaction's category from its row form. Through htmx it
+// answers with the updated row; without JavaScript it is an ordinary form post
+// that redirects back to the list it came from.
+func (h *Handler) Categorise(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	// Strict: "none" clears, a number sets, and anything else -- including an
+	// absent field -- is a malformed request, never a silent clear.
+	var catID int64
+	switch v := r.PostFormValue("category"); v {
+	case "none":
+	default:
+		if catID, err = strconv.ParseInt(v, 10, 64); err != nil || catID <= 0 {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+	}
+	me, _ := middleware.User(r)
+	_, err = h.budget.Categorise(id, catID, budget.Actor{UserID: me.ID, Via: budget.ViaWeb})
+	msg, status := "", http.StatusOK
+	switch {
+	case errors.Is(err, budget.ErrArchived):
+		msg, status = "That category is archived; choose another.", http.StatusUnprocessableEntity
+	case errors.Is(err, budget.ErrNotFound):
+		// The transaction, or the chosen category, no longer exists.
+		if _, terr := h.ledger.Txn(id); terr != nil {
+			http.Error(w, "That transaction no longer exists.", http.StatusNotFound)
+			return
+		}
+		msg, status = "That category no longer exists.", http.StatusUnprocessableEntity
+	case err != nil:
+		h.fail(w, "categorise", err)
+		return
+	}
+
+	ret := safeReturn(r.PostFormValue("return"), "/transactions")
+	if r.Header.Get("HX-Request") != "true" {
+		if msg != "" {
+			http.Error(w, msg, status)
+			return
+		}
+		http.Redirect(w, r, ret, http.StatusSeeOther)
+		return
+	}
+	// htmx: answer with the row itself, carrying the refusal if there was one,
+	// so the table never has a bare error message swapped into it.
+	t, err := h.ledger.Txn(id)
+	if err != nil {
+		h.fail(w, "categorise: reload", err)
+		return
+	}
+	cats, err := h.budget.Categories(true)
+	if err != nil {
+		h.fail(w, "categorise: categories", err)
+		return
+	}
+	h.renderPartial(w, status, "txn_row", txnRow{
+		Txn: t, Categories: offered(cats, t.CategoryID.Int64), CSRFToken: nosurf.Token(r), Return: ret,
+		OneAccount: r.PostFormValue("one_account") == "1", Saved: msg == "", Error: msg,
+	})
+}
+
+// safeReturn allows a return target only under prefix on this server, so a
+// form's return field cannot become an open redirect.
+func safeReturn(v, prefix string) string {
+	if v != prefix && !strings.HasPrefix(v, prefix+"?") || strings.ContainsAny(v, "\r\n\\") {
+		return prefix
+	}
+	return v
 }
 
 // --- Import ------------------------------------------------------------------
@@ -174,9 +302,17 @@ func (h *Handler) ImportUpload(w http.ResponseWriter, r *http.Request) {
 			var sts []importer.Statement
 			if sts, err = importer.Parse(importer.File{Name: name, Data: data}); err == nil {
 				for _, st := range sts {
-					if _, ierr := h.ledger.Import(st, ledger.SourceUpload, name, me.ID, now); ierr != nil {
+					im, ierr := h.ledger.Import(st, ledger.SourceUpload, name, me.ID, now)
+					if ierr != nil {
 						log.Printf("import %s: %v", name, ierr)
 						h.recordFailure(name, me.ID, ierr, now)
+						continue
+					}
+					// New transactions get their categories from the rules
+					// straight away; a rule failure leaves them uncategorised,
+					// which is visible and fixable, so it does not fail the import.
+					if _, err := h.budget.ApplyRules(budget.Scope{ImportID: im.ID}); err != nil {
+						log.Printf("import %s: apply rules: %v", name, err)
 					}
 				}
 				continue

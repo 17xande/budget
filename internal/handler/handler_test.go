@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/budget"
 	"github.com/17xande-dev/budget/internal/db"
 	"github.com/17xande-dev/budget/internal/handler"
 	"github.com/17xande-dev/budget/internal/ledger"
@@ -48,7 +49,7 @@ func newEnv(t *testing.T) *env {
 	if _, err := users.CreateSetupToken(setupToken, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	h, err := handler.New(users, ledger.NewStore(d), handler.Config{SessionTTL: time.Hour})
+	h, err := handler.New(users, ledger.NewStore(d), budget.NewStore(d), handler.Config{SessionTTL: time.Hour})
 	if err != nil {
 		t.Fatal(err)
 	}

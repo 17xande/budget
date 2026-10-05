@@ -1,34 +1,92 @@
 {{define "content"}}
 
-<h1>Overview</h1>
+<div class="page-head">
+  <h1>{{month .Month}}</h1>
+  <p class="month-nav">
+    <a href="/?month={{.Prev}}" rel="prev">← {{month .Prev}}</a>
+    <a href="/?month={{.Next}}" rel="next">{{month .Next}} →</a>
+  </p>
+</div>
 
-{{if not .Accounts}}
-<p>Hello, {{.Me.Name}}. There are no transactions yet.</p>
-<p><a class="button" href="/import">Import FNB exports</a></p>
-<p class="muted">Download transaction history from FNB online banking (CSV or OFX; the ZIP
-as it downloads is fine) and upload it. Categories and monthly targets come next, then
-the daily automatic fetch.</p>
-{{else}}
+{{if not .HasTxns}}
+<p class="notice">Hello, {{.Me.Name}}. Nothing is imported yet: <a href="/import">import FNB exports</a>
+to start.</p>
+{{end}}
+{{if not .HasCats}}
+<form method="post" action="/categories/starter" class="notice">
+  {{template "csrf" .CSRFToken}}
+  <p>There are no categories yet. Start with a common set (groceries, fuel, salary, transfers…)
+  that you can rename or archive, or <a href="/categories">make your own</a>.</p>
+  <div class="actions"><button type="submit">Add starter categories</button></div>
+</form>
+{{end}}
+
+{{with .Summary}}
+<dl class="totals">
+  <div><dt>Income</dt><dd class="{{moneyClass .IncomeCents}}">{{money .IncomeCents}}</dd></div>
+  <div><dt>Spent{{if .TargetCents}} of {{money .TargetCents}}{{end}}</dt><dd class="num">{{money .SpentCents}}</dd></div>
+  <div><dt>Income − spent</dt><dd class="{{moneyClass .NetCents}}">{{money .NetCents}}</dd></div>
+  <div><dt>Uncategorised</dt><dd class="num">{{if .UncatCount}}<a href="/transactions?month={{.Month}}&amp;category=none">{{.UncatCount}}</a>{{else}}0{{end}}</dd></div>
+</dl>
+{{if .UncatCount}}<p class="muted small">{{if eq .UncatCount 1}}1 uncategorised transaction{{else}}{{.UncatCount}} uncategorised transactions{{end}} ({{money .UncatOutCents}} out, {{money .UncatInCents}} in) {{if eq .UncatCount 1}}is{{else}}are{{end}} left out of the figures above until {{if eq .UncatCount 1}}it has{{else}}they have{{end}} a category.</p>{{end}}
+
+<h2>Spending</h2>
+{{if .Expenses}}
 <div class="scroll-x">
-<table>
-  <thead>
-    <tr><th>Account</th><th class="num">Transactions</th><th>Latest</th></tr>
-  </thead>
+<table class="budget">
+  <thead><tr><th>Category</th><th class="num">Spent</th><th class="num">Target</th><th class="num left">Left</th></tr></thead>
   <tbody>
-  {{range .Accounts}}
+  {{range .Expenses}}{{if or .Count .Target.Valid}}
+    <tr{{if .Over}} class="over"{{end}}>
+      <td>
+        <a href="/transactions?month={{$.Month}}&amp;category={{.CategoryID}}">{{.Name}}</a>{{if .Archived}} <span class="badge">archived</span>{{end}}
+        {{template "bar" .}}
+      </td>
+      <td class="num nowrap">{{money .SpentCents}}</td>
+      <td class="num nowrap">{{if .Target.Valid}}{{money .Target.Int64}}{{else}}—{{end}}</td>
+      <td class="num nowrap left">{{if .Target.Valid}}{{money .RemainingCents}}{{else}}—{{end}}</td>
+    </tr>
+  {{end}}{{end}}
+  </tbody>
+</table>
+</div>
+{{with idle .Expenses}}<p class="muted small">Nothing spent and no target in {{month $.Month}}: {{join . ", "}}.</p>{{end}}
+{{else}}
+<p class="muted">No spending categories yet.</p>
+{{end}}
+
+{{if .Income}}
+<h2>Income</h2>
+<div class="scroll-x">
+<table class="budget">
+  <thead><tr><th>Category</th><th class="num">Received</th><th class="num">Expected</th></tr></thead>
+  <tbody>
+  {{range .Income}}
     <tr>
-      <td><a href="/transactions?month=all&amp;account={{.ID}}">{{.Name}}</a></td>
-      <td class="num">{{.TxnCount}}</td>
-      <td>{{if .LastDate}}{{date .LastDate}}{{else}}—{{end}}</td>
+      <td><a href="/transactions?month={{$.Month}}&amp;category={{.CategoryID}}">{{.Name}}</a></td>
+      <td class="num nowrap">{{money .TotalCents}}</td>
+      <td class="num nowrap">{{if .Target.Valid}}{{money .Target.Int64}}{{else}}—{{end}}</td>
     </tr>
   {{end}}
   </tbody>
 </table>
 </div>
+{{end}}
 
-<h2>Recent imports</h2>
-{{template "imports" .Imports}}
-<p><a href="/import">Import more</a> · <a href="/transactions">All transactions</a></p>
+{{if .Transfer}}
+<p class="muted small">Transfers between your own accounts net {{money .TransferCents}} this month and are
+not counted as income or spending.{{if .TransferCents}} A non-zero net usually means one side of a transfer
+is in an account that is not imported.{{end}}</p>
+{{end}}
+{{end}}
+
+<div class="actions">
+  <a class="button" href="/budget/targets?month={{.Month}}">Edit targets for {{month .Month}}</a>
+  <a href="/transactions?month={{.Month}}">Transactions</a>
+</div>
+
+{{with .LastImport}}
+<p class="muted small">Last import: {{template "time" .CreatedAt}}{{if .AccountName}} ({{.AccountName}}){{end}}{{if .Error}} — <span class="badge problem">failed</span>{{end}}. <a href="/import">Import</a></p>
 {{end}}
 
 {{end}}

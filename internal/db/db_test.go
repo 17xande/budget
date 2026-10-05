@@ -42,8 +42,8 @@ func TestEveryTableIsStrict(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Without a floor this passes vacuously the day the schema stops applying.
-	if seen < 6 {
-		t.Errorf("found %d tables, want at least 6", seen)
+	if seen < 10 {
+		t.Errorf("found %d tables, want at least 10", seen)
 	}
 }
 
@@ -90,5 +90,25 @@ func TestOpenIsRepeatable(t *testing.T) {
 			t.Fatal(err)
 		}
 		d.Close()
+	}
+}
+
+// A database created before a column existed must be refused with a clear
+// message, not opened to fail on its first query.
+func TestOldDatabaseRefused(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	d, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec(`CREATE TABLE transactions (id INTEGER PRIMARY KEY, account_id INTEGER, posted_on TEXT,
+		amount_cents INTEGER, description TEXT, balance_cents INTEGER, fitid TEXT, import_id INTEGER,
+		dedup_key TEXT, created_at TEXT) STRICT`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	_, err = Open(path)
+	if err == nil || !strings.Contains(err.Error(), "recreate-db") {
+		t.Fatalf("old database: %v", err)
 	}
 }

@@ -46,6 +46,11 @@ type Txn struct {
 	AmountCents  int64
 	Description  string
 	BalanceCents sql.NullInt64
+	CategoryID   sql.NullInt64
+	CategoryName string
+	// CategorySource is who chose the category: "rule", "manual", "ai", or ""
+	// when there is none.
+	CategorySource string
 }
 
 // Source is where an import came from.

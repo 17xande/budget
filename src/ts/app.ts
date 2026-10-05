@@ -6,6 +6,10 @@
 
 import { localiseTimes } from "./localtime.ts";
 
+// Lets the stylesheet tell a page with JavaScript from one without: an autosave
+// form's button is only needed when nothing saves on change.
+document.documentElement.classList.add("js");
+
 localiseTimes(document);
 
 // htmx swaps new server-rendered fragments in; localise those too.

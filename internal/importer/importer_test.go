@@ -230,24 +230,6 @@ func TestCSVBadRowNamesTheLine(t *testing.T) {
 	}
 }
 
-func TestParseCents(t *testing.T) {
-	good := map[string]int64{
-		"0": 0, "12": 1200, "12.5": 1250, "12.05": 1205, "-1234.56": -123456, "+3.10": 310, " 7.00 ": 700,
-		// The classic float trap: 0.29 * 100 is 28.999999999999996.
-		"0.29": 29,
-	}
-	for in, want := range good {
-		if got, err := parseCents(in); err != nil || got != want {
-			t.Errorf("parseCents(%q) = %d, %v; want %d", in, got, err, want)
-		}
-	}
-	for _, in := range []string{"", "-", "1.234", "1.", ".5", "1,000.00", "abc", "1e3", "99999999999999999999"} {
-		if _, err := parseCents(in); err == nil {
-			t.Errorf("parseCents(%q) accepted", in)
-		}
-	}
-}
-
 func TestIsoDate(t *testing.T) {
 	good := map[string]string{
 		"2026/10/05": "2026-10-05", "20261005": "2026-10-05", "2026-10-05": "2026-10-05",

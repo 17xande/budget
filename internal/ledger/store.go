@@ -191,9 +191,14 @@ func (s *Store) Months() ([]string, error) {
 
 // Filter selects transactions. Zero values mean "any".
 type Filter struct {
-	Month     string // YYYY-MM
-	AccountID int64
-	Query     string // substring of the description, case-insensitive
+	Month      string // YYYY-MM
+	From, To   string // YYYY-MM-DD, inclusive; for date ranges other than a month
+	AccountID  int64
+	CategoryID int64
+	// Uncategorised selects only transactions without a category. It wins
+	// over CategoryID.
+	Uncategorised bool
+	Query         string // substring of the description, case-insensitive
 }
 
 // where builds the one WHERE clause both Transactions and Totals use. A list and
@@ -206,9 +211,24 @@ func (f Filter) where() (string, []any) {
 		conds = append(conds, "t.posted_on LIKE ?")
 		args = append(args, f.Month+"-%")
 	}
+	if f.From != "" {
+		conds = append(conds, "t.posted_on >= ?")
+		args = append(args, f.From)
+	}
+	if f.To != "" {
+		conds = append(conds, "t.posted_on <= ?")
+		args = append(args, f.To)
+	}
 	if f.AccountID != 0 {
 		conds = append(conds, "t.account_id = ?")
 		args = append(args, f.AccountID)
+	}
+	switch {
+	case f.Uncategorised:
+		conds = append(conds, "t.category_id IS NULL")
+	case f.CategoryID != 0:
+		conds = append(conds, "t.category_id = ?")
+		args = append(args, f.CategoryID)
 	}
 	if q := strings.TrimSpace(f.Query); q != "" {
 		// LIKE treats % and _ as wildcards; a search for "50%" means the text.
@@ -224,12 +244,19 @@ func (f Filter) where() (string, []any) {
 
 // Transactions returns matching transactions, newest first, at most limit of them.
 func (s *Store) Transactions(f Filter, limit int) ([]Txn, error) {
+	return s.TransactionsPage(f, limit, 0)
+}
+
+// TransactionsPage is Transactions starting after offset rows, for paging.
+func (s *Store) TransactionsPage(f Filter, limit, offset int) ([]Txn, error) {
 	where, args := f.where()
 	rows, err := s.db.Query(`
-		SELECT t.id, t.account_id, a.name, t.posted_on, t.amount_cents, t.description, t.balance_cents
+		SELECT t.id, t.account_id, a.name, t.posted_on, t.amount_cents, t.description, t.balance_cents,
+		       t.category_id, COALESCE(c.name, ''), t.category_source
 		FROM transactions t JOIN accounts a ON a.id = t.account_id
+		LEFT JOIN categories c ON c.id = t.category_id
 		`+where+`
-		ORDER BY t.posted_on DESC, t.id DESC LIMIT ?`, append(args, limit)...)
+		ORDER BY t.posted_on DESC, t.id DESC LIMIT ? OFFSET ?`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +264,8 @@ func (s *Store) Transactions(f Filter, limit int) ([]Txn, error) {
 	var out []Txn
 	for rows.Next() {
 		var t Txn
-		if err := rows.Scan(&t.ID, &t.AccountID, &t.AccountName, &t.PostedOn, &t.AmountCents, &t.Description, &t.BalanceCents); err != nil {
+		if err := rows.Scan(&t.ID, &t.AccountID, &t.AccountName, &t.PostedOn, &t.AmountCents, &t.Description, &t.BalanceCents,
+			&t.CategoryID, &t.CategoryName, &t.CategorySource); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -262,6 +290,26 @@ func (s *Store) Totals(f Filter) (Totals, error) {
 		       COALESCE(sum(CASE WHEN t.amount_cents > 0 THEN t.amount_cents END), 0),
 		       COALESCE(sum(CASE WHEN t.amount_cents < 0 THEN t.amount_cents END), 0)
 		FROM transactions t JOIN accounts a ON a.id = t.account_id
+		LEFT JOIN categories c ON c.id = t.category_id
 		`+where, args...).Scan(&tot.Count, &tot.InCents, &tot.OutCents)
 	return tot, err
 }
+
+// Txn returns one transaction.
+func (s *Store) Txn(id int64) (Txn, error) {
+	var t Txn
+	err := s.db.QueryRow(`
+		SELECT t.id, t.account_id, a.name, t.posted_on, t.amount_cents, t.description, t.balance_cents,
+		       t.category_id, COALESCE(c.name, ''), t.category_source
+		FROM transactions t JOIN accounts a ON a.id = t.account_id
+		LEFT JOIN categories c ON c.id = t.category_id
+		WHERE t.id = ?`, id).Scan(&t.ID, &t.AccountID, &t.AccountName, &t.PostedOn, &t.AmountCents, &t.Description,
+		&t.BalanceCents, &t.CategoryID, &t.CategoryName, &t.CategorySource)
+	if errors.Is(err, sql.ErrNoRows) {
+		return t, ErrNotFound
+	}
+	return t, err
+}
+
+// ErrNotFound means no such row.
+var ErrNotFound = errors.New("not found")

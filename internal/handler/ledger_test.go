@@ -57,7 +57,7 @@ func countRows(body string) int {
 	if m == nil {
 		return 0
 	}
-	return strings.Count(m[1], "<tr>")
+	return strings.Count(m[1], `<tr id="txn-`)
 }
 
 func TestImportJourney(t *testing.T) {
@@ -110,9 +110,9 @@ func TestImportJourney(t *testing.T) {
 		t.Errorf("search for checkers: %d rows, want the identical pair", n)
 	}
 
-	home := owner.get("/").body
-	if !strings.Contains(home, "Cheque account ···0001") || !strings.Contains(home, "Credit card ···1234") {
-		t.Error("overview does not list both accounts")
+	accts := owner.get("/accounts").body
+	if !strings.Contains(accts, "Cheque account ···0001") || !strings.Contains(accts, "Credit card ···1234") {
+		t.Error("accounts page does not list both accounts")
 	}
 }
 

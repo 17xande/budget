@@ -23,6 +23,14 @@
     </select>
   </div>
   <div class="field">
+    <label for="category">Category</label>
+    <select id="category" name="category">
+      <option value="">All categories</option>
+      <option value="none"{{if eq .Category "none"}} selected{{end}}>Uncategorised</option>
+      {{range .Categories}}<option value="{{.ID}}"{{if eq (printf "%d" .ID) $.Category}} selected{{end}}>{{.Name}}</option>{{end}}
+    </select>
+  </div>
+  <div class="field">
     <label for="q">Description</label>
     <input id="q" name="q" type="search" value="{{.Query}}" placeholder="e.g. Checkers" autocomplete="off">
   </div>
@@ -37,12 +45,12 @@
   <div><dt>Net</dt><dd class="{{moneyClass .Totals.NetCents}}">{{money .Totals.NetCents}}</dd></div>
   <div><dt>Transactions</dt><dd class="num">{{.Totals.Count}}</dd></div>
 </dl>
-<p class="muted small">Totals include transfers between your own accounts; categories
-will separate those out.</p>
+<p class="muted small">These totals count every transaction listed, whatever its category. The
+<a href="/">overview</a> is the budget view: it leaves transfers between your own accounts out.</p>
 
-{{if .Truncated}}<p class="notice">Showing the latest {{len .Txns}} of {{.Totals.Count}}; choose a month to see the rest.</p>{{end}}
+{{if .Truncated}}<p class="notice">Showing the latest {{len .Rows}} of {{.Totals.Count}}; choose a month to see the rest.</p>{{end}}
 
-{{if .Txns}}
+{{if .Rows}}
 <div class="scroll-x">
 <table class="txns">
   <thead>
@@ -52,18 +60,11 @@ will separate those out.</p>
       <th>Description</th>
       <th class="num">Amount</th>
       {{if .OneAccount}}<th class="num">Balance</th>{{end}}
+      <th>Category</th>
     </tr>
   </thead>
   <tbody>
-  {{range .Txns}}
-    <tr>
-      <td class="date nowrap">{{date .PostedOn}}</td>
-      {{if not $.OneAccount}}<td class="acct">{{.AccountName}}</td>{{end}}
-      <td>{{.Description}}</td>
-      <td class="{{moneyClass .AmountCents}} nowrap">{{money .AmountCents}}</td>
-      {{if $.OneAccount}}<td class="num nowrap">{{if .BalanceCents.Valid}}{{money .BalanceCents.Int64}}{{else}}—{{end}}</td>{{end}}
-    </tr>
-  {{end}}
+  {{range .Rows}}{{template "txn_row" .}}{{end}}
   </tbody>
 </table>
 </div>

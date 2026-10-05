@@ -1,0 +1,63 @@
+{{define "content"}}
+
+<h1>Categories</h1>
+
+<p class="muted"><strong>Expense</strong> categories count as spending (a refund in one reduces it),
+<strong>income</strong> as income, and <strong>transfer</strong> as neither — use it for money moved
+between your own accounts and for paying the credit card. Categories are archived, never deleted,
+so past months keep their meaning.</p>
+
+{{if and .Error (not .ErrorID)}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+
+<form method="post" action="/categories" class="panel">
+  {{template "csrf" .CSRFToken}}
+  <div class="field-row">
+    <div class="field">
+      <label for="new-name">New category</label>
+      <input id="new-name" name="name" value="{{.Name}}" size="24" maxlength="60" required autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="new-kind">Kind</label>
+      <select id="new-kind" name="kind">{{range .Kinds}}<option value="{{.}}"{{if eq . $.Kind}} selected{{end}}>{{.}}</option>{{end}}</select>
+    </div>
+    <div class="field"><button type="submit">Add</button></div>
+  </div>
+</form>
+
+{{if not .Categories}}
+<form method="post" action="/categories/starter">
+  {{template "csrf" .CSRFToken}}
+  <p>None yet. <button type="submit" class="quiet">Add the starter set</button></p>
+</form>
+{{end}}
+
+{{range .Categories}}
+<div class="panel{{if .Archived}} archived{{end}}">
+  {{if eq .ID $.ErrorID}}<p class="error" role="alert">{{$.Error}}</p>{{end}}
+  <form method="post" action="/categories/{{.ID}}" class="field-row">
+    {{template "csrf" $.CSRFToken}}
+    <div class="field">
+      <label for="name-{{.ID}}">Name</label>
+      <input id="name-{{.ID}}" name="name" value="{{.Name}}" size="24" maxlength="60" required autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="kind-{{.ID}}">Kind</label>
+      {{$kind := .Kind}}
+      <select id="kind-{{.ID}}" name="kind">{{range $.Kinds}}<option value="{{.}}"{{if eq . $kind}} selected{{end}}>{{.}}</option>{{end}}</select>
+    </div>
+    <div class="field"><button type="submit">Save</button></div>
+  </form>
+  <form method="post" action="/categories/{{.ID}}/archive" class="actions">
+    {{template "csrf" $.CSRFToken}}
+    {{if .Archived}}
+    <input type="hidden" name="archived" value="0">
+    <span class="badge">archived</span> <button type="submit" class="quiet">Restore</button>
+    {{else}}
+    <input type="hidden" name="archived" value="1">
+    <button type="submit" class="quiet">Archive</button>
+    {{end}}
+  </form>
+</div>
+{{end}}
+
+{{end}}

@@ -1,0 +1,44 @@
+{{define "content"}}
+
+<p class="back"><a href="/?month={{.Month}}">← {{month .Month}}</a></p>
+<h1>Targets for {{month .Month}}</h1>
+
+<p class="muted">How much each category may spend this month (or, for income, is expected to bring
+in). Leave a box empty for no target. Amounts like <code>1500</code>, <code>1 500.50</code> or
+<code>1500,50</code> are fine.</p>
+
+<form method="post" action="/budget/targets/copy" class="actions">
+  {{template "csrf" .CSRFToken}}
+  <input type="hidden" name="month" value="{{.Month}}">
+  <button type="submit" class="quiet">Copy targets from {{month (shiftMonth .Month -1)}}</button>
+  <small class="muted">Fills only categories that have no target yet.</small>
+</form>
+
+{{if not .Categories}}
+<p>No categories yet. <a href="/categories">Add some first.</a></p>
+{{else}}
+<form method="post" action="/budget/targets">
+  {{template "csrf" .CSRFToken}}
+  <input type="hidden" name="month" value="{{.Month}}">
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Category</th><th class="kind">Kind</th><th class="num">Target (R)</th></tr></thead>
+    <tbody>
+    {{range .Categories}}
+      <tr>
+        <td><label for="target-{{.ID}}">{{.Name}}</label></td>
+        <td class="muted kind">{{.Kind}}</td>
+        <td class="num">
+          <input id="target-{{.ID}}" name="target_{{.ID}}" value="{{index $.Values .ID}}" inputmode="decimal" size="10" autocomplete="off">
+          {{with index $.Errors .ID}}<p class="error">{{.}}</p>{{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  <div class="actions"><button type="submit">Save targets</button></div>
+</form>
+{{end}}
+
+{{end}}

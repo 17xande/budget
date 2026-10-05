@@ -1,0 +1,80 @@
+{{define "content"}}
+
+<h1>Rules</h1>
+
+<p class="muted">A rule gives a category to every transaction whose description contains its text
+(capitals don't matter). New imports are categorised by rule as they arrive. A rule only fills in
+transactions with no category — anything you categorised yourself is left alone. When several
+rules match, the one with the longest text wins.</p>
+
+{{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+
+{{if not .Categories}}
+<p>Add some <a href="/categories">categories</a> first.</p>
+{{else}}
+<form method="post" action="/rules" class="panel">
+  {{template "csrf" .CSRFToken}}
+  <h2>New rule</h2>
+  <div class="field">
+    <label for="new-pattern">When the description contains</label>
+    <input id="new-pattern" name="pattern" value="{{.Pattern}}" maxlength="60" required autocomplete="off">
+    <small class="hint">Keep it to the part that is always the same: <code>CHECKERS</code> rather than the
+    whole line with the branch and city.</small>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="new-category">Category</label>
+      <select id="new-category" name="category" required>
+        <option value="">Choose…</option>
+        {{range .Categories}}<option value="{{.ID}}"{{if eq .ID $.CategoryID}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+    </div>
+    <div class="field">
+      <label for="new-account">On</label>
+      <select id="new-account" name="account">
+        <option value="all">All accounts</option>
+        {{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $.AccountID}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label class="inline"><input type="checkbox" name="apply" value="1" checked> Also categorise matching uncategorised transactions now</label>
+  </div>
+  <div class="actions"><button type="submit">Save rule</button></div>
+</form>
+{{end}}
+
+{{range .Rules}}
+<div class="panel">
+  <form method="post" action="/rules/{{.ID}}">
+    {{template "csrf" $.CSRFToken}}
+    <div class="field-row">
+      <div class="field">
+        <label for="pattern-{{.ID}}">Contains</label>
+        <input id="pattern-{{.ID}}" name="pattern" value="{{.Pattern}}" size="22" maxlength="60" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="category-{{.ID}}">Category</label>
+        {{$cat := .CategoryID}}
+        <select id="category-{{.ID}}" name="category">{{range $.Categories}}<option value="{{.ID}}"{{if eq .ID $cat}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+      </div>
+      <div class="field">
+        <label for="account-{{.ID}}">On</label>
+        {{$acct := .AccountID.Int64}}
+        <select id="account-{{.ID}}" name="account">
+          <option value="all">All accounts</option>
+          {{range $.Accounts}}<option value="{{.ID}}"{{if eq .ID $acct}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div class="field"><button type="submit">Save</button></div>
+    </div>
+  </form>
+  <div class="actions">
+    <span class="muted small">{{.Matches}} transactions in {{.CategoryName}} match.</span>
+    <form method="post" action="/rules/{{.ID}}/apply">{{template "csrf" $.CSRFToken}}<button type="submit" class="quiet">Apply to uncategorised</button></form>
+    <form method="post" action="/rules/{{.ID}}/delete">{{template "csrf" $.CSRFToken}}<button type="submit" class="quiet">Delete</button></form>
+  </div>
+</div>
+{{end}}
+
+{{end}}

@@ -89,6 +89,18 @@ CREATE TABLE IF NOT EXISTS imports (
 	created_at TEXT NOT NULL
 ) STRICT;
 
+-- What a transaction is for. kind decides how reports treat it: expense counts
+-- as spending (a refund in an expense category reduces it), income as income,
+-- and transfer -- money moved between your own accounts, a card repayment --
+-- as neither. Categories are archived, never deleted, so history keeps meaning.
+CREATE TABLE IF NOT EXISTS categories (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	kind       TEXT NOT NULL CHECK (kind IN ('expense', 'income', 'transfer')),
+	archived   INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1)),
+	created_at TEXT NOT NULL
+) STRICT;
+
 -- posted_on is a calendar date (YYYY-MM-DD), not an instant: FNB's dates are
 -- South African days and are never converted between timezones. Money is integer
 -- cents.
@@ -106,12 +118,62 @@ CREATE TABLE IF NOT EXISTS transactions (
 	fitid         TEXT NOT NULL DEFAULT '',
 	import_id     INTEGER NOT NULL REFERENCES imports(id),
 	dedup_key     TEXT NOT NULL UNIQUE,
+	-- category_source says who chose the category: a rule may fill an empty
+	-- one, but never overrides a person's (or an AI's) choice.
+	category_id     INTEGER REFERENCES categories(id),
+	category_source TEXT NOT NULL DEFAULT '' CHECK (category_source IN ('', 'rule', 'manual', 'ai')),
 	created_at    TEXT NOT NULL
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(posted_on);
 CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, posted_on);
+CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+
+-- "Description contains pattern" (case-insensitive), optionally only on one
+-- account. When several match, the longest pattern wins: it is the more
+-- specific one ("WOOLWORTHS FOOD" before "WOOLWORTHS").
+CREATE TABLE IF NOT EXISTS rules (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	pattern     TEXT NOT NULL CHECK (length(trim(pattern)) > 0),
+	category_id INTEGER NOT NULL REFERENCES categories(id),
+	account_id  INTEGER REFERENCES accounts(id),
+	created_at  TEXT NOT NULL
+) STRICT;
+
+-- How much a category may take in a month (or, for income, is expected to bring).
+CREATE TABLE IF NOT EXISTS budget_targets (
+	category_id  INTEGER NOT NULL REFERENCES categories(id),
+	month        TEXT NOT NULL CHECK (month GLOB '[0-9][0-9][0-9][0-9]-[01][0-9]'),
+	target_cents INTEGER NOT NULL CHECK (target_cents >= 0),
+	PRIMARY KEY (category_id, month)
+) STRICT;
+
+-- Every change a person or an AI makes to budgeting data, with what it replaced,
+-- so a change is visible and -- for categorisation -- undoable. before/after hold
+-- the old and new values as text ('' for none).
+CREATE TABLE IF NOT EXISTS audit_log (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+	via        TEXT NOT NULL CHECK (via IN ('web', 'mcp')),
+	token_name TEXT NOT NULL DEFAULT '',
+	action     TEXT NOT NULL,
+	subject_id INTEGER,
+	before     TEXT NOT NULL DEFAULT '',
+	after      TEXT NOT NULL DEFAULT '',
+	created_at TEXT NOT NULL,
+	undone_at  TEXT NOT NULL DEFAULT ''
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 `
+
+// requiredColumns are columns added to a table after it first shipped. CREATE
+// TABLE IF NOT EXISTS cannot add them to an existing file, so Open checks for
+// them and refuses to start on a database that predates them -- with a message
+// that says what to do -- rather than failing on the first query that needs one.
+var requiredColumns = map[string][]string{
+	"transactions": {"category_id", "category_source"},
+}
 
 // Open opens the database at path (creating it if needed) and applies the schema.
 // IF NOT EXISTS throughout, so it is safe on every start.
@@ -140,7 +202,22 @@ func Open(path string) (*sql.DB, error) {
 	}
 	if _, err := d.Exec(schema); err != nil {
 		d.Close()
-		return nil, fmt.Errorf("apply schema: %w", err)
+		return nil, fmt.Errorf("apply schema: %w (a database older than the schema needs `make recreate-db`)", err)
+	}
+	for table, cols := range requiredColumns {
+		for _, col := range cols {
+			var n int
+			if err := d.QueryRow(`SELECT count(*) FROM pragma_table_info(?) WHERE name = ?`, table, col).Scan(&n); err != nil {
+				d.Close()
+				return nil, fmt.Errorf("check schema: %w", err)
+			}
+			if n == 0 {
+				d.Close()
+				return nil, fmt.Errorf("database %s predates column %s.%s; it cannot be migrated in place "+
+					"(there are no migrations while the project is greenfield): recreate it with `make recreate-db` "+
+					"and import the FNB exports again", path, table, col)
+			}
+		}
 	}
 	return d, nil
 }

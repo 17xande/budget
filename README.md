@@ -13,8 +13,8 @@ distroless container behind Traefik.
 | 0 | Capture FNB's export flow; prove automated login is possible | done — see [docs/fnb-flow.md](docs/fnb-flow.md) |
 | 1 | Scaffold: server, database, sign-in for two people, build, container | done |
 | 2 | Ledger + manual CSV/OFX import | done |
-| 3 | Categories, rules, monthly targets, dashboard | next |
-| 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | |
+| 3 | Categories, rules, monthly targets, dashboard | done |
+| 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | next |
 | 5 | Daily automatic FNB fetch | |
 | 6 | Backups, export, hardening | |
 
@@ -32,7 +32,10 @@ from **Members** with a temporary password; their first sign-in makes them choos
 their own.
 
 Then **Import** FNB downloads (CSV, OFX, or the ZIPs as they arrive), as many
-and as overlapping as you like: each transaction is stored once.
+and as overlapping as you like: each transaction is stored once. Add the starter
+**categories** (or your own), make **rules** from transactions ("contains
+CHECKERS → Groceries"; new imports are categorised as they arrive), set monthly
+**targets**, and the **overview** shows each month's spending against them.
 
 `make test` is the gate: gofmt, `go vet`, uncached Go tests, and Deno
 check/test/fmt/lint.
@@ -60,6 +63,8 @@ internal/db             SQLite open + schema (STRICT tables)
 internal/auth           argon2id passwords, sessions, setup claim
 internal/importer       FNB CSV / OFX / ZIP parsers (pure; fixture-tested)
 internal/ledger         accounts, transactions, import history
+internal/budget         categories, rules, targets, the month summary, audit log
+internal/money          exact decimal <-> cents
 internal/validate       form validation shared by the web forms and the CLI
 internal/middleware     security headers/CSP, session enforcement, rate limits
 internal/handler        routes, pages, templates/, static/ (all go:embed'ed)

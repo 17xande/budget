@@ -629,15 +629,58 @@ table {
 
 /* On a phone the amount is what matters and must be on screen without scrolling
    the table; the account column gives way (the account filter still covers it). */
+/* On a phone a transaction is a small card rather than a table row: date and
+   amount on the first line, the description under them, the category picker
+   under that. Five columns do not fit 390px, and the category is the column
+   that matters most when categorising on the go. */
 @media (max-width: 40rem) {
-  .txns .acct {
-    display: none;
-  }
+  table.txns {
+    thead {
+      display: none;
+    }
 
-  /* "Sat 3 Oct" over "2026" rather than one long line that pushes the amount
-     off screen. */
-  .txns .date {
-    white-space: normal;
+    tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--gap-xs) var(--gap);
+      padding-block: var(--gap-sm);
+      border-block-end: 1px solid var(--rule);
+    }
+
+    td {
+      border: none;
+      padding: 0;
+    }
+
+    .acct,
+    .bal {
+      display: none;
+    }
+
+    /* Placed explicitly: in source order the amount follows the description,
+       which would push it onto a line of its own. */
+    .date {
+      grid-area: 1 / 1;
+      color: var(--ink-soft);
+      font-size: var(--text-small);
+    }
+
+    .amt {
+      grid-area: 1 / 2;
+    }
+
+    .desc {
+      grid-area: 2 / 1 / 3 / -1;
+    }
+
+    .cat {
+      grid-area: 3 / 1 / 4 / -1;
+    }
+
+    td.cat select {
+      max-width: none;
+      flex: 1;
+    }
   }
 }
 
@@ -648,6 +691,112 @@ table {
 
 .small {
   font-size: var(--text-small);
+}
+
+/* --- Budget ------------------------------------------------------------- */
+
+.month-nav {
+  display: flex;
+  gap: var(--gap);
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+/* Spent against target: an SVG whose widths are attributes (the CSP forbids
+   inline styles), coloured here. */
+.bar {
+  display: block;
+  width: 100%;
+  min-width: 4rem;
+  height: 0.5rem;
+
+  .track {
+    fill: var(--rule);
+  }
+
+  .fill {
+    fill: var(--accent);
+  }
+
+  .fill.over {
+    fill: var(--warn);
+  }
+}
+
+table.budget {
+  /* The bar sits under the category name, so it never needs a column of its
+     own -- which on a phone would be off screen. */
+  .bar {
+    margin-block-start: var(--gap-xs);
+    max-width: 14rem;
+  }
+
+  tr.over td.left,
+  tr.over td:nth-child(2) {
+    color: var(--warn);
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 40rem) {
+  table.budget .left,
+  .kind {
+    display: none;
+  }
+}
+
+/* The category column of the transaction list. */
+td.cat {
+  min-width: 9rem;
+
+  form {
+    display: flex;
+    gap: var(--gap-xs);
+    align-items: center;
+  }
+
+  select {
+    max-width: 12rem;
+    font-size: var(--text-small);
+    padding-block: var(--gap-xs);
+  }
+}
+
+/* With JavaScript the select saves on change, so the button is only the
+   no-JavaScript path; app.ts puts "js" on <html>. */
+.js .autosave-btn {
+  display: none;
+}
+
+/* A row just saved through htmx, briefly marked so the change is noticed. */
+tr.saved {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  transition: background 1.2s ease-out;
+}
+
+.rule-link {
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.panel.archived {
+  opacity: 0.7;
+}
+
+label.inline {
+  display: inline-flex;
+  gap: var(--gap-sm);
+  align-items: center;
+  font-weight: normal;
+}
+
+.link-list {
+  padding-inline-start: 1.2rem;
+
+  li + li {
+    margin-block-start: var(--gap-sm);
+  }
 }
 
 /* --- Utility ------------------------------------------------------------- */
