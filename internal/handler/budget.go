@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/db"
-	"github.com/17xande-dev/budget/internal/fetch"
-	"github.com/17xande-dev/budget/internal/ledger"
-	"github.com/17xande-dev/budget/internal/middleware"
-	"github.com/17xande-dev/budget/internal/money"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/db"
+	"github.com/17xande/budget/internal/fetch"
+	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande/budget/internal/money"
 )
 
 // sast is where the household's months begin and end.

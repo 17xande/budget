@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/17xande-dev/budget/internal/ledger"
-	"github.com/17xande-dev/budget/internal/money"
+	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande/budget/internal/money"
 )
 
 // maxExport caps one CSV. Years of a household's transactions are tens of

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/importer"
+	"github.com/17xande/budget/internal/importer"
 )
 
 type Store struct {

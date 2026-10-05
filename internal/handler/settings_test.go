@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/handler"
+	"github.com/17xande/budget/internal/handler"
 )
 
 // A backup that silently stopped would only be noticed when it was needed, so the

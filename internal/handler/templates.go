@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/money"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/money"
 )
 
 //go:embed templates

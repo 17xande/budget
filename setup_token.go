@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande/budget/internal/auth"
 )
 
 // ensureSetupToken issues the one-time token that claims the first account, on a

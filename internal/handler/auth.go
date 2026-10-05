@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/auth"
-	"github.com/17xande-dev/budget/internal/middleware"
-	"github.com/17xande-dev/budget/internal/validate"
+	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande/budget/internal/validate"
 )
 
 // homePath is where a sign-in lands when there is no ?next=.

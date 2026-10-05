@@ -17,16 +17,16 @@ import (
 	// showing a South African date) needs Africa/Johannesburg. ~450 KB.
 	_ "time/tzdata"
 
-	"github.com/17xande-dev/budget/internal/auth"
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/config"
-	"github.com/17xande-dev/budget/internal/db"
-	"github.com/17xande-dev/budget/internal/fetch"
-	"github.com/17xande-dev/budget/internal/fnb"
-	"github.com/17xande-dev/budget/internal/handler"
-	"github.com/17xande-dev/budget/internal/ledger"
-	"github.com/17xande-dev/budget/internal/mcpserver"
-	"github.com/17xande-dev/budget/internal/middleware"
+	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/config"
+	"github.com/17xande/budget/internal/db"
+	"github.com/17xande/budget/internal/fetch"
+	"github.com/17xande/budget/internal/fnb"
+	"github.com/17xande/budget/internal/handler"
+	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande/budget/internal/mcpserver"
+	"github.com/17xande/budget/internal/middleware"
 	"golang.org/x/time/rate"
 )
 

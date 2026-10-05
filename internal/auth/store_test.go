@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/auth"
-	"github.com/17xande-dev/budget/internal/db"
+	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande/budget/internal/db"
 )
 
 var t0 = time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)

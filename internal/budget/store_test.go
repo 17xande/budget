@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/db"
-	"github.com/17xande-dev/budget/internal/importer"
-	"github.com/17xande-dev/budget/internal/ledger"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/db"
+	"github.com/17xande/budget/internal/importer"
+	"github.com/17xande/budget/internal/ledger"
 )
 
 var web = budget.Actor{Via: budget.ViaWeb}

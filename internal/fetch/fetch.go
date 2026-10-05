@@ -19,10 +19,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/fnb"
-	"github.com/17xande-dev/budget/internal/importer"
-	"github.com/17xande-dev/budget/internal/ledger"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/fnb"
+	"github.com/17xande/budget/internal/importer"
+	"github.com/17xande/budget/internal/ledger"
 )
 
 type Config struct {

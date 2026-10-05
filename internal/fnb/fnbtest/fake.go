@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/17xande-dev/budget/internal/fnb"
+	"github.com/17xande/budget/internal/fnb"
 )
 
 // SessionCookie is what a fake login hands out and the fake server requires.

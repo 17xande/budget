@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/17xande-dev/budget/internal/money"
+	"github.com/17xande/budget/internal/money"
 )
 
 // windows1252 is what bytes 0x80-0x9F mean in Windows-1252, the charset FNB's OFX

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande-dev/budget/internal/budget"
-	"github.com/17xande-dev/budget/internal/ledger"
-	"github.com/17xande-dev/budget/internal/money"
+	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande/budget/internal/money"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
