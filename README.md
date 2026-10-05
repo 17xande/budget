@@ -15,8 +15,8 @@ distroless container behind Traefik.
 | 2 | Ledger + manual CSV/OFX import | done |
 | 3 | Categories, rules, monthly targets, dashboard | done |
 | 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
-| 5 | Daily automatic FNB fetch | next |
-| 6 | Backups, export, hardening | |
+| 5 | Daily automatic FNB fetch | done — needs your credentials to switch on, see below |
+| 6 | Backups, export, hardening | next |
 
 ## Running it
 
@@ -45,6 +45,26 @@ Production: copy `.env.example` to `.env`, set `BUDGET_HOST`, then
 the other stacks and stores the database on the `budget-data` volume. The setup
 token is in `docker compose logs budget`.
 
+### The daily FNB fetch
+
+Off until configured. To switch it on:
+
+```sh
+mkdir -p secrets && chmod 700 secrets
+read -rs P && printf '%s\n' "$P" > secrets/fnb_password && chmod 600 secrets/fnb_password
+```
+
+then in `.env` set `FNB_USERNAME`, and `FNB_PROFILE` if your login shows a "Linked
+Profiles" page (the exact name of the personal profile). `docker compose up -d`
+starts the app and a headless Chrome beside it. **Settings → Bank fetch** shows the
+next run and every attempt; **Fetch now** runs one immediately (at most every 10
+minutes). It fetches cheque (`DDA`) and credit-card (`ZFN`) accounts by default
+(`FNB_PRODUCTS`); switch any account off under **Settings → Accounts**.
+
+It tries once a day (06:00 South African time, `FETCH_AT`) and **never retries a
+failure on its own** — repeated failed logins can lock a banking profile. A failed
+fetch shows as a banner on the overview until the next one succeeds.
+
 Locked out:
 
 ```sh
@@ -66,6 +86,8 @@ internal/ledger         accounts, transactions, import history
 internal/budget         categories, rules, targets, the month summary, audit log
 internal/money          exact decimal <-> cents
 internal/mcpserver      the /mcp endpoint for AI clients (docs/mcp.md)
+internal/fnb            FNB online banking: Chrome login, HTTP export (fnbtest: a fake bank)
+internal/fetch          the daily fetch: guards, runs, import, status
 internal/validate       form validation shared by the web forms and the CLI
 internal/middleware     security headers/CSP, session enforcement, rate limits
 internal/handler        routes, pages, templates/, static/ (all go:embed'ed)
@@ -84,12 +106,13 @@ dependency, and why:
 | `golang.org/x/crypto` | argon2id | Password hashing is not something to hand-roll. |
 | `justinas/nosurf` | CSRF tokens and origin checks | Same. |
 | `golang.org/x/time/rate` | token buckets for the rate limits | Small, from the Go team. |
+| `chromedp/chromedp` (+ `chromedp/remote`) | driving headless Chrome for the FNB login (phase 5) | FNB's login is behind bot protection that only a real browser passes honestly. chromedp's core needs only the stdlib and cdproto; the websocket half is a separate small module. Chosen over hand-rolled CDP. |
 | `modelcontextprotocol/go-sdk` | the MCP endpoint (phase 4) | The official SDK. The protocol is still moving; hand-rolling it means owning that churn, and the SDK infers tool schemas from Go structs. Already proven in gostore. |
 
 Deliberately not taken: a router (the stdlib mux does methods and wildcards), a
 validation library, an ORM or sqlc (a handful of hand-written typed queries), a
 CSS framework, a chart library (charts will be server-rendered SVG), web fonts.
-Phase 5 adds `chromedp` for the FNB login; see below.
+`chromedp` drives the FNB login; see below.
 
 **SQLite, one instance.** It changes to Postgres only if a second app instance or
 another process needs the database. STRICT tables throughout; no migrations while
@@ -117,8 +140,7 @@ stop and fall back to manual upload rather than evade it.
 
 | Decision | Candidates | When it is forced |
 |---|---|---|
-| Which FNB accounts to track | all / chosen in settings (loan and savings probably not "spending") | Phase 5 |
-| Fetch-failure notification | status page only / email / ntfy push | Phase 5 |
+| Fetch-failure notification | now: status page + overview banner; later: email or ntfy push | if a failure goes unnoticed in practice |
 | inContact email feed (IMAP) for same-day transactions | add / never | after Phase 5 |
 | An MCP tool to trigger the FNB fetch | no for now: it would let an AI cause a bank login | only if asked, after Phase 5 |
 | WAL mode | off / on (changes the backup command) | Phase 6 |

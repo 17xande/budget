@@ -87,6 +87,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 	ref        TEXT NOT NULL UNIQUE,
 	name       TEXT NOT NULL,
 	kind       TEXT NOT NULL CHECK (kind IN ('cheque', 'credit', 'savings', 'loan', 'other')),
+	-- fetch: whether the daily FNB fetch imports this account. Off for an
+	-- account you do not want in the budget (an old or unused one).
+	fetch      INTEGER NOT NULL DEFAULT 1 CHECK (fetch IN (0, 1)),
 	created_at TEXT NOT NULL
 ) STRICT;
 
@@ -181,6 +184,21 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
+
+-- Each attempt of the FNB fetch, scheduled or manual: the status page reads it,
+-- and it is what stops a second run starting while one is going or a scheduled
+-- one repeating on the same day.
+CREATE TABLE IF NOT EXISTS fetch_runs (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	trigger     TEXT NOT NULL CHECK (trigger IN ('schedule', 'manual')),
+	user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+	started_at  TEXT NOT NULL,
+	finished_at TEXT NOT NULL DEFAULT '',
+	status      TEXT NOT NULL CHECK (status IN ('running', 'ok', 'failed')),
+	accounts    INTEGER NOT NULL DEFAULT 0,
+	inserted    INTEGER NOT NULL DEFAULT 0,
+	message     TEXT NOT NULL DEFAULT ''
+) STRICT;
 `
 
 // requiredColumns are columns added to a table after it first shipped. CREATE
@@ -189,6 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
 // that says what to do -- rather than failing on the first query that needs one.
 var requiredColumns = map[string][]string{
 	"transactions": {"category_id", "category_source"},
+	"accounts":     {"fetch"},
 }
 
 // Open opens the database at path (creating it if needed) and applies the schema.

@@ -10,7 +10,8 @@ how reports treat them: money moved into savings or paid onto a loan is not spen
 {{end}}
 
 {{range .Accounts}}
-<form method="post" action="/accounts/{{.ID}}" class="panel">
+<div class="panel">
+<form method="post" action="/accounts/{{.ID}}">
   {{template "csrf" $.CSRFToken}}
   <p class="muted small">FNB {{.Ref}} · {{.TxnCount}} transactions{{if .FirstDate}}, {{date .FirstDate}} to {{date .LastDate}}{{end}}</p>
   {{if eq .ID $.ErrorID}}<p class="error" role="alert">{{$.Error}}</p>{{end}}
@@ -31,6 +32,19 @@ how reports treat them: money moved into savings or paid onto a loan is not spen
     </div>
   </div>
 </form>
+<form method="post" action="/accounts/{{.ID}}/fetch" class="actions fetch-toggle">
+  {{template "csrf" $.CSRFToken}}
+  {{if .Fetch}}
+  <input type="hidden" name="fetch" value="0">
+  <span class="muted small">Imported by the daily bank fetch.</span>
+  <button type="submit" class="quiet">Stop fetching this account</button>
+  {{else}}
+  <input type="hidden" name="fetch" value="1">
+  <span class="badge">not fetched</span>
+  <button type="submit" class="quiet">Fetch this account daily</button>
+  {{end}}
+</form>
+</div>
 {{end}}
 
 {{end}}

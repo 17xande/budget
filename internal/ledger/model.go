@@ -31,6 +31,7 @@ type Account struct {
 	Ref       string
 	Name      string
 	Kind      string
+	Fetch     bool // imported by the daily FNB fetch
 	CreatedAt time.Time
 	// Summary, filled by Accounts.
 	TxnCount  int

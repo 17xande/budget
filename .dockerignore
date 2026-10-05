@@ -11,6 +11,7 @@
 *.zip
 *.csv
 .env
+/secrets/
 
 # Build output: the image bundles and compiles its own.
 /bin/

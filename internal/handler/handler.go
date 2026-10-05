@@ -10,6 +10,7 @@ import (
 
 	"github.com/17xande-dev/budget/internal/auth"
 	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/fetch"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"github.com/justinas/nosurf"
@@ -19,6 +20,9 @@ import (
 type Config struct {
 	CookieSecure bool
 	SessionTTL   time.Duration
+	// Fetcher is the FNB fetch, for its status page; nil leaves the page saying
+	// the fetch is not available.
+	Fetcher *fetch.Fetcher
 }
 
 type Handler struct {
@@ -38,6 +42,8 @@ type Handler struct {
 	// few times in a row never locks anyone out.
 	loginByEmail *middleware.Limiter
 
+	fetcher *fetch.Fetcher
+
 	// routes is every protected route as registered; see Register.
 	routes []Route
 }
@@ -50,6 +56,7 @@ func New(users *auth.Store, led *ledger.Store, bud *budget.Store, cfg Config) (*
 		cookieSecure: cfg.CookieSecure,
 		sessionTTL:   cfg.SessionTTL,
 		loginByEmail: middleware.NewLimiter(rate.Every(time.Minute), 5),
+		fetcher:      cfg.Fetcher,
 	}
 	var err error
 	if h.assets, err = loadAssets(); err != nil {
@@ -84,6 +91,7 @@ var notices = map[string]string{
 	"rule_saved":           "Rule saved.",
 	"token_revoked":        "Token revoked. Anything using it stops working now.",
 	"undone":               "Undone.",
+	"fetch_started":        "Fetch started. It takes about a minute; reload to see the result.",
 	"rule_deleted":         "Rule deleted. Transactions it categorised keep their category.",
 	"rule_applied_none":    "Rule saved. No uncategorised transactions matched it.",
 	"rule_applied_one":     "Rule saved and applied to 1 uncategorised transaction.",
@@ -176,6 +184,9 @@ func (h *Handler) Register(mux *http.ServeMux, protect, limit func(http.Handler)
 	route("POST /tokens", h.TokenCreate, limit)
 	route("POST /tokens/{id}/revoke", h.TokenRevoke)
 	route("GET /activity", h.Activity)
+	route("GET /fetch", h.FetchStatus)
+	route("POST /fetch", h.FetchNow)
+	route("POST /accounts/{id}/fetch", h.AccountFetch)
 	route("POST /activity/{id}/undo", h.Undo)
 	route("GET /import", h.ImportPage)
 	route("POST /import", h.ImportUpload)

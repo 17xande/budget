@@ -52,6 +52,14 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
   must write the audit log (through internal/budget, or `Budget.Record`).
 - **Only `/mcp` is mounted outside nosurf** (`TestOnlyMCPIsOutsideCSRF`). It must stay
   bearer-only; never let it accept the session cookie.
+- **The fetch fails loudly and never retries.** Do not add retry loops, back-off or
+  "try again on failure" to internal/fetch: repeated failed logins lock a bank
+  profile. The guards (one running, one scheduled run a day, a manual cooldown) are
+  single INSERT ... WHERE NOT EXISTS statements -- keep them so.
+- **Test the browser half with the real headless-shell** after touching
+  internal/fnb/browser.go: `FNB_TEST_CHROME_URL=ws://127.0.0.1:9222/ go test -run
+  TestChromeLogin ./internal/fnb` (see the file for the docker command). It never
+  touches FNB.
 - **Never put real bank data in the repo.** Fixtures are synthetic; .gitignore
   blocks csv/ofx/zip outside testdata, but check what you add.
 - **FNB login must never spoof the browser** (user agent, fingerprint, Radware

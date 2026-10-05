@@ -1,23 +1,49 @@
 # Production-shaped: Traefik in front (the shared external traefik_proxy network,
-# as the other stacks use), TLS via the cloudflare certresolver, the database on
-# a named volume. For local development use `make run` on the host instead.
+# as the other stacks use), TLS via the cloudflare certresolver, the database on a
+# named volume, and a headless Chrome for the FNB login. For local development use
+# `make run` on the host instead.
 services:
   budget:
     build: .
     image: budget:${TAG:-latest}
     container_name: budget
     env_file: .env
+    environment:
+      # The password is a docker secret, mounted as a file; the app refuses a
+      # plain FNB_PASSWORD environment variable (those leak into docker inspect).
+      FNB_PASSWORD_FILE: /run/secrets/fnb_password
+      CHROME_URL: ws://chrome:9222/
+    secrets:
+      - fnb_password
     volumes:
       - budget-data:/data
     networks:
       - proxy
+      - backend
+    depends_on:
+      - chrome
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
       - "traefik.http.routers.budget.rule=Host(`${BUDGET_HOST:?set BUDGET_HOST in .env}`)"
       - "traefik.http.routers.budget.entrypoints=websecure"
       - "traefik.http.routers.budget.tls.certresolver=cloudflare"
       - "traefik.http.services.budget.loadbalancer.server.port=8080"
+
+  # The headless browser that logs in to FNB (whose login is behind bot
+  # protection a plain HTTP client cannot pass honestly). Pinned to the version
+  # the login was proven against. Reachable only from the budget container: it
+  # is on the backend network alone, publishes no port, and its DevTools
+  # endpoint -- which can drive the browser -- is never exposed.
+  chrome:
+    image: chromedp/headless-shell:155.0.8059.26
+    container_name: budget-chrome
+    networks:
+      - backend
+    restart: unless-stopped
+    # Chrome needs more than Docker's default 64 MB of shared memory.
+    shm_size: "256m"
 
 volumes:
   budget-data:
@@ -26,3 +52,11 @@ networks:
   proxy:
     external: true
     name: traefik_proxy
+  # Just the two containers. Deliberately not `internal: true`, which would cut
+  # the browser off from FNB: Chrome needs to go out, and nothing needs to come
+  # in -- it publishes no port and is not on traefik_proxy.
+  backend:
+
+secrets:
+  fnb_password:
+    file: ./secrets/fnb_password

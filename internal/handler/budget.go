@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/fetch"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
 	"github.com/17xande-dev/budget/internal/money"
@@ -62,6 +63,9 @@ type homeData struct {
 	HasCats    bool
 	HasTxns    bool
 	LastImport *ledger.Import
+	// FetchFailed is the last bank fetch when it failed, for a banner: a fetch
+	// that silently stops would leave the budget quietly out of date.
+	FetchFailed *fetch.Run
 }
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +101,16 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(imports) > 0 {
 		d.LastImport = &imports[0]
+	}
+	if h.fetcher != nil {
+		last, err := h.fetcher.Last()
+		if err != nil {
+			h.fail(w, "home: fetch status", err)
+			return
+		}
+		if last != nil && last.Status == "failed" {
+			d.FetchFailed = last
+		}
 	}
 	h.render(w, http.StatusOK, "home.html", d)
 }

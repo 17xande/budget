@@ -21,6 +21,8 @@ import (
 	"github.com/17xande-dev/budget/internal/budget"
 	"github.com/17xande-dev/budget/internal/config"
 	"github.com/17xande-dev/budget/internal/db"
+	"github.com/17xande-dev/budget/internal/fetch"
+	"github.com/17xande-dev/budget/internal/fnb"
 	"github.com/17xande-dev/budget/internal/handler"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/mcpserver"
@@ -85,7 +87,14 @@ func serve(cfg config.Config) error {
 	}
 
 	led, bud := ledger.NewStore(database), budget.NewStore(database)
+	fetcher := fetch.New(database, fnb.Chrome{URL: cfg.FNB.ChromeURL}, led, bud, fetch.Config{
+		Creds:    fnb.Credentials{Username: cfg.FNB.Username, Password: cfg.FNB.Password, Profile: cfg.FNB.Profile},
+		Products: cfg.FNB.Products,
+		Hour:     cfg.FNB.Hour,
+		Minute:   cfg.FNB.Minute,
+	})
 	h, err := handler.New(users, led, bud, handler.Config{
+		Fetcher:      fetcher,
 		CookieSecure: cfg.CookieSecure,
 		SessionTTL:   cfg.SessionTTL,
 	})
@@ -118,6 +127,7 @@ func serve(cfg config.Config) error {
 	// Expired sessions are already refused on read; this only keeps the table
 	// from growing for ever.
 	go sweepSessions(ctx, users, time.Hour)
+	go fetcher.Schedule(ctx)
 
 	errc := make(chan error, 1)
 	go func() {

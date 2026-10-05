@@ -48,6 +48,16 @@ Radware headers, so everything after login is plain HTTP with the session cookie
    are `JSESSIONID` (two, different paths) and `BANKit`. `ADRUM_BTa` is quoted —
    strip the quotes.
 
+**Use a fresh browser context per login** (`chromedp.WithNewBrowserContext`). The
+sidecar Chrome runs for weeks and its tabs share one cookie jar: without isolation,
+the next day's login starts inside the previous session, skips the profile chooser,
+and bank cookies sit in the browser between runs. The integration test
+(`FNB_TEST_CHROME_URL`, see internal/fnb/browser_test.go) caught this.
+
+**Chrome's DevTools refuses a `Host:` that is not an IP or localhost.**
+`chromedp/remote` resolves `ws://chrome:9222/` to the container's IP first, so the
+compose service name works; a hand-rolled client would need to do the same.
+
 ## After login (net/http)
 
 Every call is `POST https://www.online.fnb.co.za/banking/Controller` with

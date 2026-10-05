@@ -30,10 +30,31 @@ type Config struct {
 	// bucket. Safe, just coarse.
 	TrustedProxies []string
 
+	// FNB is the daily fetch's configuration. With no username it is off.
+	FNB FNB
+
 	// SetupToken supplies the one-time token that claims the first account, for a
 	// deploy that cannot conveniently read the token otherwise printed on first
 	// boot. Empty -- the normal case -- means one is generated and logged.
 	SetupToken string
+}
+
+// FNB configures the automated fetch.
+type FNB struct {
+	Username string
+	// Password is read from the file FNB_PASSWORD_FILE names (a docker secret),
+	// never from a plain environment variable: those end up in `docker inspect`,
+	// in process listings and in crash dumps.
+	Password string
+	// Profile is the exact name of the profile to choose when the login is
+	// linked to several (FNB's "Linked Profiles" page).
+	Profile string
+	// ChromeURL is the headless Chrome's DevTools endpoint.
+	ChromeURL string
+	// Hour and Minute are the daily run time in South Africa (FETCH_AT, HH:MM).
+	Hour, Minute int
+	// Products are the FNB product codes fetched.
+	Products []string
 }
 
 // MinSetupTokenLength is the shortest SETUP_TOKEN accepted. The token is all that
@@ -59,6 +80,10 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("config: COOKIE_SECURE must be true or false, got %q", v)
 	}
 
+	if err := loadFNB(&c.FNB); err != nil {
+		return Config{}, err
+	}
+
 	ttl, err := duration("SESSION_TTL", 30*24*time.Hour)
 	if err != nil {
 		return Config{}, err
@@ -75,6 +100,34 @@ func Load() (Config, error) {
 		c.SetupToken = ""
 	}
 	return c, nil
+}
+
+func loadFNB(f *FNB) error {
+	f.Username = strings.TrimSpace(os.Getenv("FNB_USERNAME"))
+	f.Profile = strings.TrimSpace(os.Getenv("FNB_PROFILE"))
+	f.ChromeURL = getenv("CHROME_URL", "ws://chrome:9222/")
+	f.Products = parseList(getenv("FNB_PRODUCTS", "DDA,ZFN"))
+	if os.Getenv("FNB_PASSWORD") != "" {
+		return fmt.Errorf("config: FNB_PASSWORD is not read -- put the password in a file (a docker secret) and set FNB_PASSWORD_FILE to its path")
+	}
+	if path := os.Getenv("FNB_PASSWORD_FILE"); path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("config: FNB_PASSWORD_FILE: %w", err)
+		}
+		f.Password = strings.TrimRight(string(b), "\r\n")
+	}
+	if (f.Username == "") != (f.Password == "") {
+		// Half-configured is the case to catch at startup, not at 06:00.
+		return fmt.Errorf("config: FNB_USERNAME and FNB_PASSWORD_FILE must be set together")
+	}
+	at := getenv("FETCH_AT", "06:00")
+	t, err := time.Parse("15:04", at)
+	if err != nil {
+		return fmt.Errorf("config: FETCH_AT must be HH:MM, got %q", at)
+	}
+	f.Hour, f.Minute = t.Hour(), t.Minute()
+	return nil
 }
 
 func duration(key string, def time.Duration) (time.Duration, error) {

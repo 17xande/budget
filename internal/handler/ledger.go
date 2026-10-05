@@ -416,3 +416,36 @@ func truncate(s string, n int) string {
 	}
 	return string([]rune(s)[:n])
 }
+
+// AccountFetch switches the daily fetch on (fetch=1) or off (fetch=0) for an
+// account. Strict: anything else is a bad request, never a silent default.
+func (h *Handler) AccountFetch(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	var on bool
+	switch r.PostFormValue("fetch") {
+	case "1":
+		on = true
+	case "0":
+	default:
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	ok, err := h.ledger.SetFetch(id, on)
+	if err != nil {
+		h.fail(w, "accounts: fetch", err)
+		return
+	}
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/accounts?notice=saved", http.StatusSeeOther)
+}

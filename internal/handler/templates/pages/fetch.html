@@ -1,0 +1,50 @@
+{{define "content"}}
+
+<p class="back"><a href="/settings">← Settings</a></p>
+<h1>Bank fetch</h1>
+
+{{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+
+{{if not .Configured}}
+<p class="notice">The automatic FNB fetch is not set up on this server. It needs
+<code>FNB_USERNAME</code>, the password in a file named by <code>FNB_PASSWORD_FILE</code> (a
+docker secret), and — if your login has several profiles — <code>FNB_PROFILE</code>. See the
+README. Until then, <a href="/import">import downloads by hand</a>.</p>
+{{else}}
+<p class="muted">Every day at the configured time the server logs in to FNB online banking with a
+headless browser, downloads the last 60 days of each cheque and credit-card account, and imports
+anything new — overlapping days are recognised and skipped. It tries once a day and never retries a
+failure on its own: repeated failed logins can lock a bank profile.</p>
+<p>Next scheduled run: <strong>{{.Next.Format "Mon 2 Jan 2006, 15:04"}}</strong> (South African time).</p>
+<form method="post" action="/fetch" class="actions">
+  {{template "csrf" .CSRFToken}}
+  <button type="submit">Fetch now</button>
+  <small class="muted">At most once every 10 minutes.</small>
+</form>
+{{end}}
+
+<h2>Recent runs</h2>
+{{if .Runs}}
+<div class="scroll-x">
+<table class="runs">
+  <thead><tr><th>Started</th><th>How</th><th>Result</th></tr></thead>
+  <tbody>
+  {{range .Runs}}
+    <tr>
+      <td class="nowrap">{{template "time" .StartedAt}}</td>
+      <td>{{if eq .Trigger "manual"}}Fetch now{{if .UserName}} ({{.UserName}}){{end}}{{else}}scheduled{{end}}</td>
+      <td>
+        {{if eq .Status "running"}}<span class="badge">running</span>
+        {{else if eq .Status "ok"}}<span class="badge done">ok</span> {{.Accounts}} accounts, {{.Inserted}} new transactions
+        {{else}}<span class="badge problem">failed</span> {{.Message}}{{if .Inserted}} ({{.Inserted}} new transactions from the accounts that worked){{end}}{{end}}
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="muted">No runs yet.</p>
+{{end}}
+
+{{end}}

@@ -8,6 +8,11 @@
   </p>
 </div>
 
+{{with .FetchFailed}}
+<p class="notice problem" role="alert">The last bank fetch failed ({{template "time" .StartedAt}}): {{.Message}}
+<a href="/fetch">Details</a></p>
+{{end}}
+
 {{if not .HasTxns}}
 <p class="notice">Hello, {{.Me.Name}}. Nothing is imported yet: <a href="/import">import FNB exports</a>
 to start.</p>

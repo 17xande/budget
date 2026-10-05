@@ -3,6 +3,9 @@ module github.com/17xande-dev/budget
 go 1.27.1
 
 require (
+	github.com/chromedp/cdproto v0.157.4
+	github.com/chromedp/chromedp v0.19.1
+	github.com/chromedp/chromedp/remote v0.1.0
 	github.com/justinas/nosurf v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	golang.org/x/crypto v0.57.0
@@ -12,6 +15,9 @@ require (
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

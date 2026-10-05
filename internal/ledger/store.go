@@ -137,7 +137,7 @@ func (s *Store) Imports(limit int) ([]Import, error) {
 // Accounts returns every account with its transaction count and date range.
 func (s *Store) Accounts() ([]Account, error) {
 	rows, err := s.db.Query(`
-		SELECT a.id, a.ref, a.name, a.kind, a.created_at,
+		SELECT a.id, a.ref, a.name, a.kind, a.fetch, a.created_at,
 		       count(t.id), COALESCE(min(t.posted_on), ''), COALESCE(max(t.posted_on), '')
 		FROM accounts a LEFT JOIN transactions t ON t.account_id = a.id
 		GROUP BY a.id ORDER BY a.kind, a.name`)
@@ -149,7 +149,7 @@ func (s *Store) Accounts() ([]Account, error) {
 	for rows.Next() {
 		var a Account
 		var created string
-		if err := rows.Scan(&a.ID, &a.Ref, &a.Name, &a.Kind, &created, &a.TxnCount, &a.FirstDate, &a.LastDate); err != nil {
+		if err := rows.Scan(&a.ID, &a.Ref, &a.Name, &a.Kind, &a.Fetch, &created, &a.TxnCount, &a.FirstDate, &a.LastDate); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = parseTime(created)
@@ -313,3 +313,25 @@ func (s *Store) Txn(id int64) (Txn, error) {
 
 // ErrNotFound means no such row.
 var ErrNotFound = errors.New("not found")
+
+// SetFetch turns the daily fetch on or off for an account.
+func (s *Store) SetFetch(id int64, fetch bool) (bool, error) {
+	res, err := s.db.Exec(`UPDATE accounts SET fetch = ? WHERE id = ?`, fetch, id)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
+}
+
+// FetchEnabled reports whether the daily fetch should import the account with
+// this ref. An account not seen before is enabled: the first fetch is how it
+// arrives, and it can be switched off after.
+func (s *Store) FetchEnabled(ref string) (bool, error) {
+	var on bool
+	err := s.db.QueryRow(`SELECT fetch FROM accounts WHERE ref = ?`, ref).Scan(&on)
+	if errors.Is(err, sql.ErrNoRows) {
+		return true, nil
+	}
+	return on, err
+}

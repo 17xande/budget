@@ -42,8 +42,8 @@ func TestEveryTableIsStrict(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Without a floor this passes vacuously the day the schema stops applying.
-	if seen < 11 {
-		t.Errorf("found %d tables, want at least 11", seen)
+	if seen < 12 {
+		t.Errorf("found %d tables, want at least 12", seen)
 	}
 }
 
