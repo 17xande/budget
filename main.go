@@ -1,0 +1,144 @@
+// Command budget is a household budgeting app: FNB transactions in, categorised
+// spending against monthly targets out. See README.md.
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	// distroless/static carries no zoneinfo, and the schedule (and anything
+	// showing a South African date) needs Africa/Johannesburg. ~450 KB.
+	_ "time/tzdata"
+
+	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/config"
+	"github.com/17xande-dev/budget/internal/db"
+	"github.com/17xande-dev/budget/internal/handler"
+	"github.com/17xande-dev/budget/internal/middleware"
+	"golang.org/x/time/rate"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(os.Args) > 1 {
+		if err := runCommand(cfg, os.Args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if err := serve(cfg); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// runCommand runs an operator subcommand. These exist as subcommands of the one
+// binary, rather than separate cmd/ programs, because the runtime image is
+// distroless: `docker compose exec budget /budget reset-password ...` works there
+// with no shell and no sqlite3.
+func runCommand(cfg config.Config, args []string) error {
+	switch args[0] {
+	case "reset-password":
+		if len(args) != 2 {
+			return errors.New("usage: budget reset-password EMAIL  (new password on stdin)")
+		}
+		d, err := db.Open(cfg.DBPath)
+		if err != nil {
+			return err
+		}
+		defer d.Close()
+		return resetPassword(auth.NewStore(d), args[1], os.Stdin, os.Stdout)
+	default:
+		return fmt.Errorf("unknown command %q (known: reset-password)", args[0])
+	}
+}
+
+func serve(cfg config.Config) error {
+	database, err := db.Open(cfg.DBPath)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer database.Close()
+
+	users := auth.NewStore(database)
+	if err := ensureSetupToken(users, cfg.SetupToken, log.Default()); err != nil {
+		return fmt.Errorf("setup token: %w", err)
+	}
+
+	h, err := handler.New(users, handler.Config{
+		CookieSecure: cfg.CookieSecure,
+		SessionTTL:   cfg.SessionTTL,
+	})
+	if err != nil {
+		return fmt.Errorf("init handler: %w", err)
+	}
+
+	// One per-IP ceiling for every route that verifies a secret. Generous enough
+	// that a fumbled password or two never trips it; the per-email tier inside
+	// the login handler is the tight one.
+	trusted := middleware.ParseTrustedProxies(cfg.TrustedProxies)
+	secretLimit := middleware.NewLimiter(rate.Every(10*time.Second), 10).ByIP(trusted)
+
+	app := h.Server(middleware.RequireUser(users), secretLimit)
+
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           app,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// Expired sessions are already refused on read; this only keeps the table
+	// from growing for ever.
+	go sweepSessions(ctx, users, time.Hour)
+
+	errc := make(chan error, 1)
+	go func() {
+		log.Printf("listening on :%s", cfg.Port)
+		errc <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+	}
+	log.Print("shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return srv.Shutdown(shutdownCtx)
+}
+
+func sweepSessions(ctx context.Context, store *auth.Store, every time.Duration) {
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-t.C:
+			if n, err := store.DeleteExpiredSessions(now); err != nil {
+				log.Printf("sweep sessions: %v", err)
+			} else if n > 0 {
+				log.Printf("swept %d expired session(s)", n)
+			}
+		}
+	}
+}

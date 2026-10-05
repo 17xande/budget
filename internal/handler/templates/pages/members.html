@@ -1,0 +1,56 @@
+{{define "content"}}
+
+<h1>Members</h1>
+
+<p class="muted">Everyone listed here can see and change everything in the budget.</p>
+
+<div class="scroll-x">
+<table>
+  <thead>
+    <tr><th>Name</th><th>Email</th><th>Last signed in</th></tr>
+  </thead>
+  <tbody>
+  {{range .Members}}
+    <tr>
+      <td>{{.Name}}{{if eq .ID $.Me.ID}} <span class="badge">you</span>{{end}}</td>
+      <td>{{.Email}}</td>
+      <td>{{template "time" .LastLoginAt}}{{if .MustChangePassword}} <span class="badge">temporary password</span>{{end}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+
+<form method="post" action="/members">
+  {{template "csrf" .CSRFToken}}
+  <fieldset class="panel">
+    <legend>Add a member</legend>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" value="{{.Email}}" required autocomplete="off">
+      {{template "err" index .Errors "email"}}
+    </div>
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" value="{{.Name}}" required autocomplete="off">
+      {{template "err" index .Errors "name"}}
+    </div>
+    <div class="field">
+      <label for="password">Temporary password</label>
+      <input id="password" name="password" type="password" required autocomplete="new-password">
+      {{template "err" index .Errors "password"}}
+      <small class="hint">At least 12 characters. Tell them in person; they choose their
+      own the first time they sign in.</small>
+    </div>
+    <div class="field">
+      <label for="password_confirm">Confirm temporary password</label>
+      <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password">
+      {{template "err" index .Errors "password_confirm"}}
+    </div>
+    <div class="actions">
+      <button type="submit">Add member</button>
+    </div>
+  </fieldset>
+</form>
+
+{{end}}

@@ -1,0 +1,55 @@
+{{define "content"}}
+
+<h1>Set up Budget</h1>
+
+<p class="notice">Nobody has claimed this budget yet. The server printed a one-time
+setup token when it started; paste it below with the account you will sign in with.
+You can add a second person afterwards.</p>
+
+<form method="post" action="/setup">
+  {{template "csrf" .CSRFToken}}
+
+  <fieldset class="panel">
+    <legend>Setup token</legend>
+    <div class="field">
+      <label for="token">Token</label>
+      {{/* Never re-filled after a failed attempt, and autocomplete off: it is a credential. */}}
+      <input id="token" name="token" type="text" autocomplete="off" autofocus required>
+      {{template "err" index .Errors "token"}}
+      <small class="hint">From the server log: <code>docker compose logs budget</code>,
+      or the terminal running <code>make run</code>.</small>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel">
+    <legend>Your account</legend>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" value="{{.Email}}" required autocomplete="username">
+      {{template "err" index .Errors "email"}}
+    </div>
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" value="{{.Name}}" required autocomplete="name">
+      {{template "err" index .Errors "name"}}
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autocomplete="new-password">
+      {{template "err" index .Errors "password"}}
+      <small class="hint">At least 12 characters. A short passphrase beats a mangled
+      word; length is the only rule.</small>
+    </div>
+    <div class="field">
+      <label for="password_confirm">Confirm password</label>
+      <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password">
+      {{template "err" index .Errors "password_confirm"}}
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit">Create my account</button>
+  </div>
+</form>
+
+{{end}}

@@ -1,0 +1,23 @@
+# The database holds both of your finances -- never commit it, wherever DB_PATH
+# points. Includes the WAL/SHM sidecars.
+/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Bank exports (CSV/OFX/ZIP) dropped here for importing or testing. Real
+# transactions; test fixtures are synthetic and live under testdata/.
+*.ofx
+*.qif
+*.zip
+*.csv
+!internal/**/testdata/**
+
+# Secrets.
+.env
+
+# Build output. dist/ is written by `deno task build`; .gitkeep keeps the
+# directory so go:embed has something to find on a fresh checkout.
+/bin/
+/internal/handler/static/dist/*
+!/internal/handler/static/dist/.gitkeep

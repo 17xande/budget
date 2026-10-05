@@ -1,0 +1,22 @@
+# The Dockerfile does `COPY . .`, so anything here is sent to the daemon and baked
+# into a builder layer. The final image is clean either way (multi-stage), but a
+# builder layer holding real transactions is one `docker save` away from shared.
+# Mirrors .gitignore, plus local-only files git never sees.
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.ofx
+*.qif
+*.zip
+*.csv
+.env
+
+# Build output: the image bundles and compiles its own.
+/bin/
+/internal/handler/static/dist/
+
+.git
+.gitignore
+.dockerignore
+.claude/

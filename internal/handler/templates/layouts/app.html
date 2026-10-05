@@ -1,0 +1,31 @@
+{{/*
+  The signed-in chrome. It carries the nav and the sign-out form, which is why it
+  is a separate layout rather than a flag on the plain one: login and setup render
+  through layouts/plain.html, so there is no sign-out button in scope for them.
+*/}}
+{{define "layout"}}
+{{template "document_head" .}}
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="/">Budget</a>
+    <nav>
+      <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>Overview</a>
+      <a href="/members"{{if eq .Nav "members"}} aria-current="page"{{end}}>Members</a>
+      <a href="/password"{{if eq .Nav "password"}} aria-current="page"{{end}}>Your password</a>
+    </nav>
+    <form method="post" action="/logout">
+      {{template "csrf" .CSRFToken}}
+      <button class="quiet" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>
+<main>
+<div class="inner">
+{{if .Notice}}<p class="notice" role="status">{{.Notice}}</p>{{end}}
+{{block "content" .}}{{end}}
+</div>
+</main>
+</body>
+</html>
+{{end}}

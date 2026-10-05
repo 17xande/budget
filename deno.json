@@ -1,0 +1,20 @@
+{
+  "tasks": {
+    // Cleans first: go:embed takes the whole dist/ directory, so stale output
+    // would ship in the binary.
+    "build": "deno task clean && deno task bundle",
+    "bundle": "deno bundle src/ts/app.ts --platform browser --minify --outdir internal/handler/static/dist",
+    "watch": "deno bundle --watch src/ts/app.ts --platform browser --outdir internal/handler/static/dist",
+    "check": "deno check src/ts",
+    "test": "deno test src/ts",
+    // The glob skips dotfiles, so dist/.gitkeep survives.
+    "clean": "rm -rf internal/handler/static/dist/*"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"]
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.19"
+  },
+  "include": ["src/ts"]
+}

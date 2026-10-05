@@ -1,0 +1,36 @@
+{{define "content"}}
+
+<h1>Budget</h1>
+
+{{/*
+  One message for every failure. Which of them it was is not the visitor's
+  business, and telling them turns this form into a way to find out who has an
+  account.
+*/}}
+{{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
+{{if .Notice}}<p class="notice" role="status">{{.Notice}}</p>{{end}}
+
+<form method="post" action="/login">
+  {{template "csrf" .CSRFToken}}
+  <input type="hidden" name="next" value="{{.Next}}">
+
+  <fieldset class="panel">
+    <legend>Sign in</legend>
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" value="{{.Email}}"
+             autocomplete="username" autofocus required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             autocomplete="current-password" required>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit">Sign in</button>
+  </div>
+</form>
+
+{{end}}

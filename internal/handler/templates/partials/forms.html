@@ -1,0 +1,16 @@
+{{/*
+  The two things every form repeats:
+    {{template "csrf" .CSRFToken}}
+    {{template "err" index .Errors "email"}}
+  err takes the value, not the map, so a field with no error renders nothing.
+*/}}
+{{define "csrf"}}<input type="hidden" name="csrf_token" value="{{.}}">{{end}}
+
+{{define "err"}}{{with .}}<p class="error">{{.}}</p>{{end}}{{end}}
+
+{{/*
+  A timestamp: machine-readable for the page script, which rewrites the text in
+  the reader's own timezone, and labelled UTC until it does -- so without the
+  script nobody misreads it by their offset.
+*/}}
+{{define "time"}}{{if .IsZero}}never{{else}}<time datetime="{{utc .}}" data-local>{{utcText .}}</time>{{end}}{{end}}

@@ -1,0 +1,28 @@
+# Production-shaped: Traefik in front (the shared external traefik_proxy network,
+# as the other stacks use), TLS via the cloudflare certresolver, the database on
+# a named volume. For local development use `make run` on the host instead.
+services:
+  budget:
+    build: .
+    image: budget:${TAG:-latest}
+    container_name: budget
+    env_file: .env
+    volumes:
+      - budget-data:/data
+    networks:
+      - proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.budget.rule=Host(`${BUDGET_HOST:?set BUDGET_HOST in .env}`)"
+      - "traefik.http.routers.budget.entrypoints=websecure"
+      - "traefik.http.routers.budget.tls.certresolver=cloudflare"
+      - "traefik.http.services.budget.loadbalancer.server.port=8080"
+
+volumes:
+  budget-data:
+
+networks:
+  proxy:
+    external: true
+    name: traefik_proxy

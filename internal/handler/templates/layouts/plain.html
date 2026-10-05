@@ -1,0 +1,15 @@
+{{/*
+  The chrome-free layout for pages served to someone with no session: login and
+  setup. No nav and no sign-out button, which is the point -- see layouts/app.html.
+*/}}
+{{define "layout"}}
+{{template "document_head" .}}
+<body>
+<main>
+<div class="inner narrow">
+{{block "content" .}}{{end}}
+</div>
+</main>
+</body>
+</html>
+{{end}}
