@@ -14,8 +14,9 @@ distroless container behind Traefik.
 | 1 | Scaffold: server, database, sign-in for two people, build, container | done |
 | 2 | Ledger + manual CSV/OFX import | done |
 | 3 | Categories, rules, monthly targets, dashboard | next |
-| 4 | Daily automatic FNB fetch | |
-| 5 | Backups, export, hardening | |
+| 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | |
+| 5 | Daily automatic FNB fetch | |
+| 6 | Backups, export, hardening | |
 
 ## Running it
 
@@ -81,7 +82,7 @@ dependency, and why:
 Deliberately not taken: a router (the stdlib mux does methods and wildcards), a
 validation library, an ORM or sqlc (a handful of hand-written typed queries), a
 CSS framework, a chart library (charts will be server-rendered SVG), web fonts.
-Phase 4 adds `chromedp` for the FNB login; see below.
+Phase 4 adds the official MCP Go SDK (`modelcontextprotocol/go-sdk`) for AI access, and Phase 5 adds `chromedp` for the FNB login; see below.
 
 **SQLite, one instance.** It changes to Postgres only if a second app instance or
 another process needs the database. STRICT tables throughout; no migrations while
@@ -109,9 +110,10 @@ stop and fall back to manual upload rather than evade it.
 
 | Decision | Candidates | When it is forced |
 |---|---|---|
-| Which FNB accounts to track | all / chosen in settings (loan and savings probably not "spending") | Phase 4 |
-| Fetch-failure notification | status page only / email / ntfy push | Phase 4 |
-| inContact email feed (IMAP) for same-day transactions | add / never | after Phase 4 |
-| WAL mode | off / on (changes the backup command) | Phase 5 |
-| Off-host backups | none / R2 | Phase 5 |
+| Which FNB accounts to track | all / chosen in settings (loan and savings probably not "spending") | Phase 5 |
+| Fetch-failure notification | status page only / email / ntfy push | Phase 5 |
+| inContact email feed (IMAP) for same-day transactions | add / never | after Phase 5 |
+| An MCP tool to trigger the FNB fetch | no for now: it would let an AI cause a bank login | only if asked, after Phase 5 |
+| WAL mode | off / on (changes the backup command) | Phase 6 |
+| Off-host backups | none / R2 | Phase 6 |
 | CI | none (no remote yet) / GitHub Actions | when the repo gets a remote |
