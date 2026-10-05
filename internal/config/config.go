@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -29,6 +31,11 @@ type Config struct {
 	// peer address, which behind a proxy means everyone shares one rate-limit
 	// bucket. Safe, just coarse.
 	TrustedProxies []string
+
+	// BackupDir receives a daily copy of the database; BackupKeep is how many
+	// days are kept there. BackupKeep 0 turns backups off.
+	BackupDir  string
+	BackupKeep int
 
 	// FNB is the daily fetch's configuration. With no username it is off.
 	FNB FNB
@@ -78,6 +85,16 @@ func Load() (Config, error) {
 		// Strict, because the permissive reading of a typo ("ture") is an
 		// insecure cookie on a deployment that meant to be https.
 		return Config{}, fmt.Errorf("config: COOKIE_SECURE must be true or false, got %q", v)
+	}
+
+	// Beside the database by default, so the one volume holds both; that guards
+	// against a bad write or a mistaken delete, not a lost disk -- see README.
+	c.BackupDir = getenv("BACKUP_DIR", filepath.Join(filepath.Dir(c.DBPath), "backups"))
+	keep := getenv("BACKUP_KEEP", "14")
+	if n, err := strconv.Atoi(keep); err != nil || n < 0 {
+		return Config{}, fmt.Errorf("config: BACKUP_KEEP must be a whole number of days (0 for none), got %q", keep)
+	} else {
+		c.BackupKeep = n
 	}
 
 	if err := loadFNB(&c.FNB); err != nil {

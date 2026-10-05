@@ -94,3 +94,17 @@ func TestFNB(t *testing.T) {
 		t.Error("FETCH_AT=6am was accepted")
 	}
 }
+
+func TestBackup(t *testing.T) {
+	t.Setenv("DB_PATH", "/data/budget.db")
+	c, err := Load()
+	if err != nil || c.BackupDir != "/data/backups" || c.BackupKeep != 14 {
+		t.Fatalf("defaults: %q %d %v", c.BackupDir, c.BackupKeep, err)
+	}
+	for _, bad := range []string{"-1", "two weeks"} {
+		t.Setenv("BACKUP_KEEP", bad)
+		if _, err := Load(); err == nil {
+			t.Errorf("BACKUP_KEEP=%s was accepted", bad)
+		}
+	}
+}

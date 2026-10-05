@@ -23,6 +23,9 @@ type Config struct {
 	// Fetcher is the FNB fetch, for its status page; nil leaves the page saying
 	// the fetch is not available.
 	Fetcher *fetch.Fetcher
+	// BackupDir is where the daily backups land, for the settings page; empty
+	// means backups are off.
+	BackupDir string
 }
 
 type Handler struct {
@@ -42,7 +45,8 @@ type Handler struct {
 	// few times in a row never locks anyone out.
 	loginByEmail *middleware.Limiter
 
-	fetcher *fetch.Fetcher
+	fetcher   *fetch.Fetcher
+	backupDir string
 
 	// routes is every protected route as registered; see Register.
 	routes []Route
@@ -57,6 +61,7 @@ func New(users *auth.Store, led *ledger.Store, bud *budget.Store, cfg Config) (*
 		sessionTTL:   cfg.SessionTTL,
 		loginByEmail: middleware.NewLimiter(rate.Every(time.Minute), 5),
 		fetcher:      cfg.Fetcher,
+		backupDir:    cfg.BackupDir,
 	}
 	var err error
 	if h.assets, err = loadAssets(); err != nil {
@@ -165,6 +170,7 @@ func (h *Handler) Register(mux *http.ServeMux, protect, limit func(http.Handler)
 
 	route("GET /{$}", h.Home)
 	route("GET /transactions", h.Transactions)
+	route("GET /transactions.csv", h.TransactionsCSV)
 	route("POST /transactions/{id}/category", h.Categorise)
 	route("GET /budget/targets", h.Targets)
 	route("POST /budget/targets", h.TargetsSave)

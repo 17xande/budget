@@ -60,6 +60,11 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
   internal/fnb/browser.go: `FNB_TEST_CHROME_URL=ws://127.0.0.1:9222/ go test -run
   TestChromeLogin ./internal/fnb` (see the file for the docker command). It never
   touches FNB.
+- **Every text cell in a CSV goes through `csvText`** (internal/handler/export.go),
+  and every download is built in a buffer before the first header: descriptions are
+  merchant-written, and a streamed export that fails halfway still looks complete.
+- **Backups are `db.Backup` (VACUUM INTO, temp file + rename).** Never copy the
+  database file: a copy taken mid-write can be torn.
 - **Never put real bank data in the repo.** Fixtures are synthetic; .gitignore
   blocks csv/ofx/zip outside testdata, but check what you add.
 - **FNB login must never spoof the browser** (user agent, fingerprint, Radware

@@ -16,7 +16,7 @@ distroless container behind Traefik.
 | 3 | Categories, rules, monthly targets, dashboard | done |
 | 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
 | 5 | Daily automatic FNB fetch | done — needs your credentials to switch on, see below |
-| 6 | Backups, export, hardening | next |
+| 6 | Backups, export, hardening | done |
 
 ## Running it
 
@@ -72,6 +72,36 @@ make reset-password EMAIL=you@example.com                 # local database
 # in the container: the password goes on stdin, never as an argument
 read -rs P && printf '%s\n' "$P" | docker compose exec -T budget /budget reset-password you@example.com
 ```
+
+### Backups and export
+
+A copy of the database is made at startup and then once a day, into `backups/`
+beside it (`/data/backups` in the container, so inside the same volume), and the
+newest 14 are kept (`BACKUP_DIR`, `BACKUP_KEEP`; `0` turns them off). Each is a
+complete database made with `VACUUM INTO`, consistent even while the app is writing.
+**Settings** shows the latest and warns when it is over two days old.
+
+They sit on the same disk, so they undo a mistake, not a lost machine. Copy them off
+now and then:
+
+```sh
+docker compose cp budget:/data/backups ./budget-backups
+```
+
+To restore one, stop the app and copy it over the database inside the volume (the
+image has no shell, so a throwaway busybox does the copy; overwriting keeps the
+file's owner, the app's non-root user):
+
+```sh
+docker compose stop budget
+docker run --rm --volumes-from "$(docker compose ps -aq budget)" busybox \
+  sh -c 'cp /data/backups/budget-2026-10-05.db /data/budget.db && chown 65532:65532 /data/budget.db'
+docker compose start budget
+```
+
+**Transactions → Download these as CSV** exports what the page is showing;
+**Settings → Export** downloads everything. Text cells that a spreadsheet would run as
+a formula (`=`, `+`, `-`, `@`) are prefixed with `'`.
 
 ## Layout
 
@@ -143,6 +173,6 @@ stop and fall back to manual upload rather than evade it.
 | Fetch-failure notification | now: status page + overview banner; later: email or ntfy push | if a failure goes unnoticed in practice |
 | inContact email feed (IMAP) for same-day transactions | add / never | after Phase 5 |
 | An MCP tool to trigger the FNB fetch | no for now: it would let an AI cause a bank login | only if asked, after Phase 5 |
-| WAL mode | off / on (changes the backup command) | Phase 6 |
-| Off-host backups | none / R2 | Phase 6 |
+| WAL mode | off (SQLite's default journal) / on. Two people never contend, so nothing forces it; backups use `VACUUM INTO`, which works the same either way | if writes ever wait on a long read (the fetch, an export) |
+| Off-host backups | by hand for now (`docker compose cp`, above) / a scheduled push to R2 or another machine | before the data is worth more than a re-import of the last three months |
 | CI | none (no remote yet) / GitHub Actions | when the repo gets a remote |

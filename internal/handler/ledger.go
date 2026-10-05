@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"cmp"
 	"errors"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -46,6 +48,7 @@ type txnsData struct {
 	// OneAccount shows the balance column, which only means anything for a
 	// single account.
 	OneAccount bool
+	ExportURL  string
 }
 
 // txnRow is one table row: the transaction, and what its category form needs.
@@ -82,37 +85,7 @@ func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := r.URL.Query()
-	f := ledger.Filter{Query: truncate(strings.TrimSpace(q.Get("q")), 100)}
-	switch m := q.Get("month"); {
-	case m == "all":
-	case monthRe.MatchString(m):
-		f.Month = m
-	case len(months) > 0:
-		// Absent or malformed: the latest month, rather than an error page
-		// for a hand-edited URL.
-		f.Month = months[0]
-	}
-	if id, err := strconv.ParseInt(q.Get("account"), 10, 64); err == nil {
-		for _, a := range accts {
-			if a.ID == id {
-				f.AccountID = id
-			}
-		}
-	}
-	category := ""
-	switch c := q.Get("category"); c {
-	case "none":
-		f.Uncategorised, category = true, "none"
-	default:
-		if id, err := strconv.ParseInt(c, 10, 64); err == nil {
-			for _, cat := range cats {
-				if cat.ID == id {
-					f.CategoryID, category = id, c
-				}
-			}
-		}
-	}
+	f, category := txnFilter(r.URL.Query(), months, accts, cats)
 
 	txns, err := h.ledger.Transactions(f, maxListed)
 	if err != nil {
@@ -139,7 +112,62 @@ func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {
 		Month: f.Month, AccountID: f.AccountID, Category: category, Query: f.Query,
 		Rows: rows, Totals: totals, Truncated: totals.Count > len(txns),
 		OneAccount: f.AccountID != 0,
+		ExportURL:  exportURL(f, category),
 	})
+}
+
+// txnFilter reads the transaction filter from a query string, keeping only
+// values that name something real. The page and its CSV export both use it, so
+// "download what I am looking at" downloads exactly that.
+func txnFilter(q url.Values, months []string, accts []ledger.Account, cats []budget.Category) (f ledger.Filter, category string) {
+	f.Query = truncate(strings.TrimSpace(q.Get("q")), 100)
+	switch m := q.Get("month"); {
+	case m == "all":
+	case monthRe.MatchString(m):
+		f.Month = m
+	case len(months) > 0:
+		// Absent or malformed: the latest month, rather than an error page
+		// for a hand-edited URL.
+		f.Month = months[0]
+	}
+	if id, err := strconv.ParseInt(q.Get("account"), 10, 64); err == nil {
+		for _, a := range accts {
+			if a.ID == id {
+				f.AccountID = id
+			}
+		}
+	}
+	switch c := q.Get("category"); c {
+	case "none":
+		f.Uncategorised, category = true, "none"
+	default:
+		if id, err := strconv.ParseInt(c, 10, 64); err == nil {
+			for _, cat := range cats {
+				if cat.ID == id {
+					f.CategoryID, category = id, c
+				}
+			}
+		}
+	}
+	return f, category
+}
+
+// exportURL is the CSV of a resolved filter. Built from the filter, not copied
+// from the request, so a page that defaulted to the latest month exports that
+// month rather than everything.
+func exportURL(f ledger.Filter, category string) string {
+	v := url.Values{}
+	v.Set("month", cmp.Or(f.Month, "all"))
+	if f.AccountID != 0 {
+		v.Set("account", strconv.FormatInt(f.AccountID, 10))
+	}
+	if category != "" {
+		v.Set("category", category)
+	}
+	if f.Query != "" {
+		v.Set("q", f.Query)
+	}
+	return "/transactions.csv?" + v.Encode()
 }
 
 // active is the categories a form offers: the unarchived ones.

@@ -40,6 +40,12 @@ type env struct {
 // Login is the real one and stays in force.
 func newEnv(t *testing.T) *env {
 	t.Helper()
+	return newEnvWith(t, handler.Config{SessionTTL: time.Hour})
+}
+
+// newEnvWith is newEnv with a chosen handler configuration.
+func newEnvWith(t *testing.T, cfg handler.Config) *env {
+	t.Helper()
 	d, err := db.Open(filepath.Join(t.TempDir(), "h.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +55,7 @@ func newEnv(t *testing.T) *env {
 	if _, err := users.CreateSetupToken(setupToken, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	h, err := handler.New(users, ledger.NewStore(d), budget.NewStore(d), handler.Config{SessionTTL: time.Hour})
+	h, err := handler.New(users, ledger.NewStore(d), budget.NewStore(d), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/db"
 	"github.com/17xande-dev/budget/internal/fetch"
 	"github.com/17xande-dev/budget/internal/ledger"
 	"github.com/17xande-dev/budget/internal/middleware"
@@ -555,6 +557,32 @@ func (h *Handler) RuleApply(w http.ResponseWriter, r *http.Request) {
 
 // --- Settings --------------------------------------------------------------------
 
+// backupStale is how old the newest backup may be before the settings page warns.
+// Backups are daily, so two days means at least one was missed.
+const backupStale = 48 * time.Hour
+
+type settingsData struct {
+	page
+	BackupsOn bool
+	Backups   int
+	Latest    *db.BackupFile
+	Stale     bool
+	BackupErr bool
+}
+
 func (h *Handler) Settings(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "settings.html", struct{ page }{newPage(r, "Settings", "settings")})
+	d := settingsData{page: newPage(r, "Settings", "settings"), BackupsOn: h.backupDir != ""}
+	if d.BackupsOn {
+		files, err := db.Backups(h.backupDir)
+		if err != nil {
+			log.Printf("settings: backups: %v", err)
+			d.BackupErr = true
+		}
+		d.Backups = len(files)
+		if len(files) > 0 {
+			d.Latest = &files[0]
+		}
+		d.Stale = d.Latest == nil || time.Since(d.Latest.ModTime) > backupStale
+	}
+	h.render(w, http.StatusOK, "settings.html", d)
 }

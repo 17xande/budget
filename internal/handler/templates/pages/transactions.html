@@ -45,6 +45,7 @@
   <div><dt>Net</dt><dd class="{{moneyClass .Totals.NetCents}}">{{money .Totals.NetCents}}</dd></div>
   <div><dt>Transactions</dt><dd class="num">{{.Totals.Count}}</dd></div>
 </dl>
+<p class="muted small"><a href="{{.ExportURL}}" download>Download these as CSV</a></p>
 <p class="muted small">These totals count every transaction listed, whatever its category. The
 <a href="/">overview</a> is the budget view: it leaves transfers between your own accounts out.</p>
 
