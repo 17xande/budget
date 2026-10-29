@@ -17,8 +17,10 @@ URL="${DEPLOY_URL:-https://budget.17xande.dev}"
 
 cd "$(dirname "$0")/.."
 
-if ! git diff --quiet HEAD -- || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-	echo "deploy: the working tree has uncommitted changes; commit first so the tag names what runs" >&2
+# Tracked files only: an untracked scratch file (AGENTS.md, say) is not code that
+# ships, and .dockerignore keeps stray files out of the image anyway.
+if ! git diff --quiet HEAD --; then
+	echo "deploy: tracked files have uncommitted changes; commit first so the tag names what runs" >&2
 	exit 1
 fi
 TAG="$(git rev-parse --short=12 HEAD)"
