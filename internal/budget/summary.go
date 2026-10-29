@@ -48,6 +48,24 @@ type Summary struct {
 // out: the first is not income or spending, the second is not yet known.
 func (s Summary) NetCents() int64 { return s.IncomeCents - s.SpentCents }
 
+// RemainingCents is what is left to spend against the month's targets: the sum
+// of target minus spent over the expense categories that have a target, and
+// only those. A category with no target adds nothing, uncategorised money is
+// not counted (it has no category yet), and an over-spent category contributes
+// its negative remainder, so it eats into the others' headroom. It is therefore
+// not TargetCents minus SpentCents, because SpentCents also counts spending in
+// categories that have no target. This is the one definition; the dashboard and
+// the MCP summary both read it.
+func (s Summary) RemainingCents() int64 {
+	var left int64
+	for _, l := range s.Expenses {
+		if l.Target.Valid {
+			left += l.RemainingCents()
+		}
+	}
+	return left
+}
+
 // Summary computes one month (YYYY-MM). Every unarchived category appears, so a
 // category with a target and nothing spent yet is visible; an archived one
 // appears only if it has transactions that month.

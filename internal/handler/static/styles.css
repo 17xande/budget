@@ -715,6 +715,14 @@ table {
   }
 }
 
+/* Between a phone and a wide screen the four figures sit two by two: the auto-fit
+   grid would otherwise leave a lone figure on a second row at about 700px. */
+@media (min-width: 40.0625rem) and (max-width: 64rem) {
+  .totals {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* A phone shows the figures stacked, one per row. */
 @media (max-width: 40rem) {
   .totals {
@@ -795,27 +803,67 @@ table {
 
 /* --- Budget ------------------------------------------------------------- */
 
+/* The month switcher: two square arrows, the title's neighbour on the same line. */
 .month-nav {
   display: flex;
-  gap: var(--gap);
+  gap: var(--gap-xs);
   margin: 0;
-  font-size: var(--text-small);
+  margin-inline-end: auto;
+}
+
+.button.icon {
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
+
+/* The line under the page title: last import, what a figure leaves out. */
+.page-head > .hint {
+  flex: 1 0 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* A panel that is only a table: the table's own edges are the panel's. */
+.panel.flush {
+  padding: 0;
+
+  > table {
+    margin: 0;
+
+    tbody:last-child tr:last-child td {
+      border-block-end: 0;
+    }
+  }
+}
+
+/* The Uncategorised figure asks for attention when there is something to do. */
+.totals dd.near,
+.totals dd.near a {
+  color: var(--near);
 }
 
 /* Spent against target: an SVG whose widths are attributes (the CSP forbids
-   inline styles), coloured here. */
+   inline styles), coloured here by the row's state: blue, orange from 90%, red over. */
 .bar {
   display: block;
-  width: 100%;
-  min-width: 4rem;
-  height: 0.5rem;
+  inline-size: 100%;
+  min-inline-size: 90px;
+  block-size: 6px;
 
   .track {
-    fill: var(--rule);
+    fill: var(--track);
   }
 
   .fill {
     fill: var(--accent);
+  }
+
+  .fill.near {
+    fill: var(--near);
   }
 
   .fill.over {
@@ -824,22 +872,49 @@ table {
 }
 
 table.budget {
-  /* The bar sits under the category name, so it never needs a column of its
-     own -- which on a phone would be off screen. */
-  .bar {
-    margin-block-start: var(--gap-xs);
-    max-width: 14rem;
+  td.progress {
+    inline-size: 28%;
+    vertical-align: middle;
   }
 
-  tr.over td.left,
-  tr.over td:nth-child(2) {
+  td.left {
+    vertical-align: middle;
+  }
+
+  /* "R1 260 left" / "R310 over": blue normally, orange near, red over. */
+  .pill {
+    display: inline-block;
+    font: 500 12px var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  tr.near .pill {
+    background: var(--near-soft);
+    color: var(--near);
+  }
+
+  tr.over .pill {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+
+  tr.over td.spent {
     color: var(--warn);
     font-weight: 600;
   }
+
+  tfoot td.left {
+    color: var(--ink-soft);
+  }
 }
 
+/* A phone drops the target and progress columns: the pill carries the status. */
 @media (max-width: 40rem) {
-  table.budget .left,
+  .hide-s,
   .kind {
     display: none;
   }

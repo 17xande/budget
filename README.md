@@ -17,7 +17,7 @@ distroless container behind Traefik.
 | 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
 | 5 | Daily automatic FNB fetch | done — needs your credentials to switch on, see below |
 | 6 | Backups, export, hardening | done |
-| 7 | Restyle to the "Ledger" design: shell, tokens, light/dark (step 1 of 4; page bodies follow) | in progress |
+| 7 | Restyle to the "Ledger" design: shell, tokens, light/dark (step 2 of 4: shell and Overview done; Transactions and the rest follow) | in progress |
 
 ## Running it
 

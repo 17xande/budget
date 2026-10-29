@@ -347,8 +347,9 @@ func TestSpendingSummaryMatchesTheStore(t *testing.T) {
 
 	s := f.connect(f.token)
 	var out struct {
-		Spent    struct{ Cents int64 } `json:"spent"`
-		Expenses []struct {
+		Spent     struct{ Cents int64 } `json:"spent"`
+		Remaining struct{ Cents int64 } `json:"remaining"`
+		Expenses  []struct {
 			Name      string                 `json:"name"`
 			Spent     struct{ Cents int64 }  `json:"spent"`
 			Remaining *struct{ Cents int64 } `json:"remaining"`
@@ -362,6 +363,9 @@ func TestSpendingSummaryMatchesTheStore(t *testing.T) {
 	want, _ := f.budget.Summary("2026-10")
 	if out.Spent.Cents != want.SpentCents || out.Uncategorised.Count != want.UncatCount || len(out.Expenses) != len(want.Expenses) {
 		t.Fatalf("mcp %+v vs store spent %d uncat %d", out, want.SpentCents, want.UncatCount)
+	}
+	if out.Remaining.Cents != want.RemainingCents() || out.Remaining.Cents != -2980 {
+		t.Errorf("remaining %d, store %d, want -2980", out.Remaining.Cents, want.RemainingCents())
 	}
 	e := out.Expenses[0]
 	if e.Name != "Groceries" || e.Spent.Cents != 17980 || !e.Over || e.Remaining == nil || e.Remaining.Cents != -2980 {

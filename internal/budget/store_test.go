@@ -299,3 +299,25 @@ func TestSummary(t *testing.T) {
 		t.Errorf("archived handling: %v", names)
 	}
 }
+
+func TestSummaryRemainingCents(t *testing.T) {
+	exp := func(target int64, hasTarget bool, spent int64) budget.Line {
+		return budget.Line{Kind: budget.KindExpense, Target: sql.NullInt64{Int64: target, Valid: hasTarget}, TotalCents: -spent}
+	}
+	for name, tc := range map[string]struct {
+		s    budget.Summary
+		want int64
+	}{
+		"nothing":                  {budget.Summary{}, 0},
+		"no targets":               {budget.Summary{Expenses: []budget.Line{exp(0, false, 5000)}, SpentCents: 5000}, 0},
+		"under target":             {budget.Summary{Expenses: []budget.Line{exp(10000, true, 4000)}}, 6000},
+		"over-spent subtracts":     {budget.Summary{Expenses: []budget.Line{exp(10000, true, 4000), exp(5000, true, 8000)}}, 3000},
+		"untargeted spend ignored": {budget.Summary{Expenses: []budget.Line{exp(10000, true, 4000), exp(0, false, 9000)}}, 6000},
+		"uncategorised ignored":    {budget.Summary{Expenses: []budget.Line{exp(10000, true, 4000)}, UncatOutCents: -7000, UncatCount: 2}, 6000},
+		"refund adds headroom":     {budget.Summary{Expenses: []budget.Line{exp(10000, true, -500)}}, 10500},
+	} {
+		if got := tc.s.RemainingCents(); got != tc.want {
+			t.Errorf("%s: RemainingCents = %d, want %d", name, got, tc.want)
+		}
+	}
+}

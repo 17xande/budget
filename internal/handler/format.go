@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/17xande/budget/internal/budget"
 )
 
 // formatMoney renders cents as South Africans write rand: "R 1 234.56", grouped
@@ -25,6 +27,44 @@ func formatMoney(cents int64) string {
 	}
 	frac := cents % 100
 	return sign + "R " + b.String() + "." + string(rune('0'+frac/10)) + string(rune('0'+frac%10))
+}
+
+// formatRand renders cents as whole rand for the overview: "R14 500", "−R30".
+// Display only: it rounds half away from zero, and the stored and summed values
+// stay in cents, so rounded parts can differ from a rounded total by R1.
+func formatRand(cents int64) string {
+	sign := ""
+	if cents < 0 {
+		sign = "−"
+		cents = -cents
+	}
+	whole := strconv.FormatInt((cents+50)/100, 10)
+	var b strings.Builder
+	for i, r := range whole {
+		if i > 0 && (len(whole)-i)%3 == 0 {
+			b.WriteString("\u00a0")
+		}
+		b.WriteRune(r)
+	}
+	if b.String() == "0" {
+		sign = ""
+	}
+	return sign + "R" + b.String()
+}
+
+// lineState is a category's status for the overview: "" with no target, "over"
+// past the target, "near" from 90% of it, else "ok". It only compares figures
+// the Line already has.
+func lineState(l budget.Line) string {
+	switch {
+	case !l.Target.Valid:
+		return ""
+	case l.Over():
+		return "over"
+	case l.SpentCents()*10 >= l.Target.Int64*9:
+		return "near"
+	}
+	return "ok"
 }
 
 // moneyClass is the CSS class for an amount: money out and money in read

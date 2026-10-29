@@ -84,8 +84,16 @@ func (h *Handler) parseTemplates() (map[string]*template.Template, error) {
 // templateFuncs is deliberately tiny.
 func (h *Handler) templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"asset":      h.assetURL,
-		"money":      formatMoney,
+		"asset":     h.assetURL,
+		"money":     formatMoney,
+		"rand":      formatRand,
+		"lineState": lineState,
+		"abs": func(n int64) int64 {
+			if n < 0 {
+				return -n
+			}
+			return n
+		},
 		"moneyClass": moneyClass,
 		"month":      monthLabel,
 		"date":       dateLabel,

@@ -1,6 +1,11 @@
 package handler
 
-import "testing"
+import (
+	"database/sql"
+	"testing"
+
+	"github.com/17xande/budget/internal/budget"
+)
 
 func TestFormatMoney(t *testing.T) {
 	for cents, want := range map[int64]string{
@@ -27,5 +32,47 @@ func TestLabels(t *testing.T) {
 	}
 	if got := monthLabel("nonsense"); got != "nonsense" {
 		t.Errorf("monthLabel passthrough = %q", got)
+	}
+}
+
+func TestFormatRand(t *testing.T) {
+	for cents, want := range map[int64]string{
+		0:         "R0",
+		49:        "R0",
+		50:        "R1",
+		-49:       "R0",
+		-50:       "−R1",
+		1450000:   "R14 500",
+		-1450000:  "−R14 500",
+		123456789: "R1 234 568",
+		-2980:     "−R30",
+		149:       "R1",
+		150:       "R2",
+	} {
+		if got := formatRand(cents); got != want {
+			t.Errorf("formatRand(%d) = %q, want %q", cents, got, want)
+		}
+	}
+}
+
+func TestLineState(t *testing.T) {
+	line := func(target, spent int64, hasTarget bool) budget.Line {
+		return budget.Line{Target: sql.NullInt64{Int64: target, Valid: hasTarget}, TotalCents: -spent}
+	}
+	for name, tc := range map[string]struct {
+		l    budget.Line
+		want string
+	}{
+		"no target":          {line(0, 5000, false), ""},
+		"zero spent":         {line(10000, 0, true), "ok"},
+		"89.9 percent":       {line(10000, 8999, true), "ok"},
+		"90 percent":         {line(10000, 9000, true), "near"},
+		"exactly the target": {line(10000, 10000, true), "near"},
+		"over":               {line(10000, 10001, true), "over"},
+		"refunds":            {line(10000, -500, true), "ok"},
+	} {
+		if got := lineState(tc.l); got != tc.want {
+			t.Errorf("%s: lineState = %q, want %q", name, got, tc.want)
+		}
 	}
 }

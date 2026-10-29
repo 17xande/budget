@@ -289,6 +289,7 @@ type summaryOut struct {
 	Spent         Money  `json:"spent"`
 	TargetTotal   Money  `json:"target_total"`
 	Net           Money  `json:"net" jsonschema:"income minus spent"`
+	Remaining     Money  `json:"remaining" jsonschema:"target minus spent over the expense categories that have a target; negative when those are over in total; uncategorised money is not counted"`
 	TransfersNet  Money  `json:"transfers_net" jsonschema:"not income or spending; near zero when both sides are imported"`
 	Uncategorised struct {
 		Count int   `json:"count"`
@@ -308,7 +309,7 @@ func (s *Server) spendingSummary(_ context.Context, _ call, in summaryIn) (summa
 		return summaryOut{}, err
 	}
 	out := summaryOut{Month: sum.Month, Income: m(sum.IncomeCents), Spent: m(sum.SpentCents), TargetTotal: m(sum.TargetCents),
-		Net: m(sum.NetCents()), TransfersNet: m(sum.TransferCents), Expenses: []ExpenseLine{}, IncomeBy: []IncomeLine{}}
+		Net: m(sum.NetCents()), Remaining: m(sum.RemainingCents()), TransfersNet: m(sum.TransferCents), Expenses: []ExpenseLine{}, IncomeBy: []IncomeLine{}}
 	out.Uncategorised.Count, out.Uncategorised.In, out.Uncategorised.Out = sum.UncatCount, m(sum.UncatInCents), m(sum.UncatOutCents)
 	for _, l := range sum.Expenses {
 		e := ExpenseLine{CategoryID: l.CategoryID, Name: l.Name, Spent: m(l.SpentCents()), Over: l.Over(), Count: l.Count}

@@ -144,11 +144,26 @@ func TestTargetsAndDashboard(t *testing.T) {
 
 	// October: two Checkers rows of R 89.90 against a R 150.00 target -- over.
 	home := owner.get("/?month=2026-10").body
-	for _, want := range []string{"R 179.80", "R 150.00", "−R 29.80", `<tr class="over">`, `width="100"`} {
+	// The overview shows whole rand (R 179.80 -> R180, R 29.80 over -> R30).
+	for _, want := range []string{"R180", "R150", "R30 over", `<tr class="over">`, `<rect class="fill over" width="100"`} {
 		if !strings.Contains(home, want) {
 			t.Errorf("dashboard lacks %q", want)
 		}
 	}
+	if strings.Contains(home, "179.80") {
+		t.Error("the overview should round to whole rand")
+	}
+
+	// At 92% of a R 195.00 target the line is near, not over, and has R15 left.
+	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"195,00"}})
+	home = owner.get("/?month=2026-10").body
+	for _, want := range []string{`<tr class="near">`, `<rect class="fill near"`, "R15 left"} {
+		if !strings.Contains(home, want) {
+			t.Errorf("near dashboard lacks %q", want)
+		}
+	}
+
+	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"150,00"}})
 
 	// Copy forward fills November from October.
 	owner.post("/budget/targets?month=2026-11", "/budget/targets/copy", url.Values{"month": {"2026-11"}})

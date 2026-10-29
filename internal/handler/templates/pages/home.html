@@ -3,9 +3,12 @@
 <div class="page-head">
   <h1>{{month .Month}}</h1>
   <p class="month-nav">
-    <a href="/?month={{.Prev}}" rel="prev">← {{month .Prev}}</a>
-    <a href="/?month={{.Next}}" rel="next">{{month .Next}} →</a>
+    <a class="button icon quiet" href="/?month={{.Prev}}" rel="prev" aria-label="Previous month: {{month .Prev}}">‹</a>
+    <a class="button icon quiet" href="/?month={{.Next}}" rel="next" aria-label="Next month: {{month .Next}}">›</a>
   </p>
+  {{with .LastImport}}
+  <p class="hint">Last import: {{template "time" .CreatedAt}}{{if .AccountName}} ({{.AccountName}}){{end}}{{if .Error}} — <span class="badge problem">failed</span>{{end}}. <a href="/import">Import</a></p>
+  {{end}}
 </div>
 
 {{with .FetchFailed}}
@@ -28,49 +31,56 @@ to start.</p>
 
 {{with .Summary}}
 <dl class="totals">
-  <div><dt>Income</dt><dd class="{{moneyClass .IncomeCents}}">{{money .IncomeCents}}</dd></div>
-  <div><dt>Spent{{if .TargetCents}} of {{money .TargetCents}}{{end}}</dt><dd class="num">{{money .SpentCents}}</dd></div>
-  <div><dt>Income − spent</dt><dd class="{{moneyClass .NetCents}}">{{money .NetCents}}</dd></div>
-  <div><dt>Uncategorised</dt><dd class="num">{{if .UncatCount}}<a href="/transactions?month={{.Month}}&amp;category=none">{{.UncatCount}}</a>{{else}}0{{end}}</dd></div>
+  <div><dt>Income</dt><dd class="{{moneyClass .IncomeCents}}">{{rand .IncomeCents}}</dd></div>
+  <div><dt>Spent{{if .TargetCents}} of {{rand .TargetCents}}{{end}}</dt><dd class="num">{{rand .SpentCents}}</dd></div>
+  <div><dt>Income − spent</dt><dd class="{{moneyClass .NetCents}}">{{rand .NetCents}}</dd></div>
+  <div><dt>Uncategorised</dt><dd class="num{{if .UncatCount}} near{{end}}">{{if .UncatCount}}<a href="/transactions?month={{.Month}}&amp;category=none">{{.UncatCount}}</a>{{else}}0{{end}}</dd></div>
 </dl>
-{{if .UncatCount}}<p class="muted small">{{if eq .UncatCount 1}}1 uncategorised transaction{{else}}{{.UncatCount}} uncategorised transactions{{end}} ({{money .UncatOutCents}} out, {{money .UncatInCents}} in) {{if eq .UncatCount 1}}is{{else}}are{{end}} left out of the figures above until {{if eq .UncatCount 1}}it has{{else}}they have{{end}} a category.</p>{{end}}
+{{if .UncatCount}}<p class="hint">{{if eq .UncatCount 1}}1 uncategorised transaction{{else}}{{.UncatCount}} uncategorised transactions{{end}} ({{rand .UncatOutCents}} out, {{rand .UncatInCents}} in) {{if eq .UncatCount 1}}is{{else}}are{{end}} left out of the figures above until {{if eq .UncatCount 1}}it has{{else}}they have{{end}} a category.</p>{{end}}
 
 <h2>Spending</h2>
 {{if .Expenses}}
-<div class="scroll-x">
+<div class="panel flush">
 <table class="budget">
-  <thead><tr><th>Category</th><th class="num">Spent</th><th class="num">Target</th><th class="num left">Left</th></tr></thead>
+  <thead><tr><th>Category</th><th class="num hide-s">Target</th><th class="num">Spent</th><th class="hide-s">Progress</th><th class="num left">Left</th></tr></thead>
   <tbody>
   {{range .Expenses}}{{if or .Count .Target.Valid}}
-    <tr{{if .Over}} class="over"{{end}}>
-      <td>
-        <a href="/transactions?month={{$.Month}}&amp;category={{.CategoryID}}">{{.Name}}</a>{{if .Archived}} <span class="badge">archived</span>{{end}}
-        {{template "bar" .}}
-      </td>
-      <td class="num nowrap">{{money .SpentCents}}</td>
-      <td class="num nowrap">{{if .Target.Valid}}{{money .Target.Int64}}{{else}}—{{end}}</td>
-      <td class="num nowrap left">{{if .Target.Valid}}{{money .RemainingCents}}{{else}}—{{end}}</td>
+    <tr{{with lineState .}} class="{{.}}"{{end}}>
+      <td><a href="/transactions?month={{$.Month}}&amp;category={{.CategoryID}}">{{.Name}}</a>{{if .Archived}} <span class="badge">archived</span>{{end}}</td>
+      <td class="num nowrap hide-s">{{if .Target.Valid}}{{rand .Target.Int64}}{{else}}—{{end}}</td>
+      <td class="num nowrap spent">{{rand .SpentCents}}</td>
+      <td class="hide-s progress">{{template "bar" .}}</td>
+      <td class="num nowrap left">{{if .Target.Valid}}<span class="pill">{{if .Over}}{{rand (abs .RemainingCents)}} over{{else}}{{rand .RemainingCents}} left{{end}}</span>{{else}}—{{end}}</td>
     </tr>
   {{end}}{{end}}
   </tbody>
+  <tfoot>
+    <tr>
+      <td>Total</td>
+      <td class="num nowrap hide-s">{{rand .TargetCents}}</td>
+      <td class="num nowrap">{{rand .SpentCents}}</td>
+      <td class="hide-s"></td>
+      <td class="num nowrap left">{{if .TargetCents}}{{if lt .RemainingCents 0}}{{rand (abs .RemainingCents)}} over{{else}}{{rand .RemainingCents}} left{{end}}{{end}}</td>
+    </tr>
+  </tfoot>
 </table>
 </div>
-{{with idle .Expenses}}<p class="muted small">Nothing spent and no target in {{month $.Month}}: {{join . ", "}}.</p>{{end}}
+{{with idle .Expenses}}<p class="hint">Nothing spent and no target in {{month $.Month}}: {{join . ", "}}.</p>{{end}}
 {{else}}
 <p class="muted">No spending categories yet.</p>
 {{end}}
 
 {{if .Income}}
 <h2>Income</h2>
-<div class="scroll-x">
+<div class="panel flush">
 <table class="budget">
   <thead><tr><th>Category</th><th class="num">Received</th><th class="num">Expected</th></tr></thead>
   <tbody>
   {{range .Income}}
     <tr>
       <td><a href="/transactions?month={{$.Month}}&amp;category={{.CategoryID}}">{{.Name}}</a></td>
-      <td class="num nowrap">{{money .TotalCents}}</td>
-      <td class="num nowrap">{{if .Target.Valid}}{{money .Target.Int64}}{{else}}—{{end}}</td>
+      <td class="num nowrap">{{rand .TotalCents}}</td>
+      <td class="num nowrap">{{if .Target.Valid}}{{rand .Target.Int64}}{{else}}—{{end}}</td>
     </tr>
   {{end}}
   </tbody>
@@ -79,7 +89,7 @@ to start.</p>
 {{end}}
 
 {{if .Transfer}}
-<p class="muted small">Transfers between your own accounts net {{money .TransferCents}} this month and are
+<p class="hint">Transfers between your own accounts net {{rand .TransferCents}} this month and are
 not counted as income or spending.{{if .TransferCents}} A non-zero net usually means one side of a transfer
 is in an account that is not imported.{{end}}</p>
 {{end}}
@@ -89,9 +99,5 @@ is in an account that is not imported.{{end}}</p>
   <a class="button" href="/budget/targets?month={{.Month}}">Edit targets for {{month .Month}}</a>
   <a href="/transactions?month={{.Month}}">Transactions</a>
 </div>
-
-{{with .LastImport}}
-<p class="muted small">Last import: {{template "time" .CreatedAt}}{{if .AccountName}} ({{.AccountName}}){{end}}{{if .Error}} — <span class="badge problem">failed</span>{{end}}. <a href="/import">Import</a></p>
-{{end}}
 
 {{end}}
