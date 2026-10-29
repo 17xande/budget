@@ -1,7 +1,9 @@
 {{define "content"}}
 
 <p class="back"><a href="/settings">← Settings</a></p>
-<h1>Activity</h1>
+<div class="page-head">
+  <h1>Activity</h1>
+</div>
 
 <p class="muted">Changes to the budget: who made them, and how.
 {{if .AIOnly}}Showing changes made by AI clients. <a href="/activity?via=all">Show everyone's</a>.
@@ -11,7 +13,7 @@ A categorisation can be undone while nobody has changed that transaction since.<
 {{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
 
 {{if .Entries}}
-<div class="scroll-x">
+<div class="panel flush">
 <table class="activity">
   <thead><tr><th>When</th><th>Who</th><th>Change</th><th></th></tr></thead>
   <tbody>

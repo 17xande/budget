@@ -1,24 +1,24 @@
 {{/* The import history table, on the import page and the overview. */}}
 {{define "imports"}}
 {{if .}}
-<div class="scroll-x">
-<table>
+<div class="panel flush">
+<table class="imports">
   <thead>
     <tr><th>When</th><th>File</th><th>Account</th><th class="num">New</th><th class="num">Already had</th><th>By</th></tr>
   </thead>
   <tbody>
   {{range .}}
     <tr>
-      <td>{{template "time" .CreatedAt}}</td>
-      <td class="break">{{.Filename}}</td>
+      <td class="when">{{template "time" .CreatedAt}}</td>
+      <td class="break file">{{.Filename}}</td>
       {{if .Error}}
-      <td colspan="3"><span class="badge problem">failed</span> {{.Error}}</td>
+      <td colspan="3" class="failed"><span class="badge problem">failed</span> {{.Error}}</td>
       {{else}}
-      <td>{{.AccountName}}</td>
-      <td class="num">{{.Inserted}}</td>
-      <td class="num">{{.Skipped}}</td>
+      <td class="acct">{{.AccountName}}</td>
+      <td class="num new">{{.Inserted}}</td>
+      <td class="num had">{{.Skipped}}</td>
       {{end}}
-      <td>{{if .UserName}}{{.UserName}}{{else}}automatic{{end}}</td>
+      <td class="by">{{if .UserName}}{{.UserName}}{{else}}automatic{{end}}</td>
     </tr>
   {{end}}
   </tbody>

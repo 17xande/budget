@@ -469,7 +469,9 @@ button,
     padding-inline: var(--gap-xs);
   }
 
-  > :where(h2, h3):first-child {
+  /* The form's hidden CSRF input comes first, so the heading is the second child. */
+  > :where(h2, h3):first-child,
+  > input[type="hidden"]:first-child + :where(h2, h3) {
     margin-block-start: 0;
   }
 
@@ -1080,9 +1082,56 @@ table.txns {
   }
 }
 
-.panel.archived {
-  background: var(--paper-sunk);
-  color: var(--ink-soft);
+/* A list of editable things (categories, rules): one panel, one row each, a rule
+   between them. An archived row is sunk and muted. */
+.rows > .item {
+  padding: var(--gap);
+
+  + .item {
+    border-block-start: 1px solid var(--rule);
+  }
+
+  &.archived {
+    background: var(--paper-sunk);
+    color: var(--ink-soft);
+  }
+
+  > .field-row + .actions,
+  > form + .actions,
+  > form + form {
+    margin-block-start: var(--gap-sm);
+  }
+}
+
+/* A category row: the edit form and Archive share a line when there is room. */
+.rows.cats > .item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm) var(--gap);
+  align-items: end;
+  justify-content: space-between;
+
+  > form {
+    margin: 0;
+  }
+
+  > form:first-child {
+    flex: 1 1 20rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .rows.cats > .item > form:first-child > .field:first-child,
+  .rows.cats > .item > form:first-child > .field:first-child > input {
+    inline-size: 100%;
+  }
+}
+
+/* A figure typed into a box: mono and right-aligned like the figures around it. */
+table.targets input {
+  font-family: var(--font-mono);
+  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
 label.inline {
@@ -1187,13 +1236,21 @@ table.runs td:last-child {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: var(--gap-xs) var(--gap);
-      padding-block: var(--gap-sm);
+      padding: var(--gap-sm) var(--gap);
       border-block-end: 1px solid var(--rule);
+    }
+
+    tr:last-child {
+      border-block-end: 0;
     }
 
     td {
       border: none;
       padding: 0;
+    }
+
+    .change {
+      overflow-wrap: anywhere;
     }
 
     .when {
@@ -1212,6 +1269,119 @@ table.runs td:last-child {
 
     .change {
       grid-area: 3 / 1 / 4 / -1;
+    }
+  }
+}
+
+/* Import history and the token list as cards on a phone. Import: file name and
+   when on top, then the account and the two counts on one line (or the failure,
+   whole), then who. Tokens: name and Revoke, then the three dates. */
+@media (max-width: 40rem) {
+  table.imports,
+  table.tokens {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: grid;
+      gap: var(--gap-xs) var(--gap);
+      padding: var(--gap-sm) var(--gap);
+      border-block-end: 1px solid var(--rule);
+    }
+
+    tr:last-child {
+      border-block-end: 0;
+    }
+
+    td {
+      border: none;
+      padding: 0;
+    }
+  }
+
+  table.imports {
+    tr {
+      grid-template-columns: auto auto 1fr;
+    }
+
+    .file {
+      grid-area: 1 / 1 / 2 / -1;
+      font-weight: 500;
+    }
+
+    .when {
+      grid-area: 2 / 1 / 3 / -1;
+      color: var(--ink-soft);
+      font-size: var(--text-small);
+    }
+
+    .acct {
+      grid-area: 3 / 1 / 4 / -1;
+    }
+
+    td.num {
+      text-align: start;
+      grid-row: 4;
+    }
+
+    .new::after {
+      content: " new";
+      font: 12px var(--font);
+      color: var(--ink-soft);
+    }
+
+    .had::after {
+      content: " already had";
+      font: 12px var(--font);
+      color: var(--ink-soft);
+    }
+
+    .failed {
+      grid-area: 3 / 1 / 4 / -1;
+      overflow-wrap: anywhere;
+    }
+
+    .by {
+      grid-area: 5 / 1 / 6 / -1;
+      color: var(--ink-soft);
+      font-size: var(--text-small);
+    }
+  }
+
+  table.tokens {
+    tr {
+      grid-template-columns: 1fr auto;
+    }
+
+    .name {
+      grid-area: 1 / 1;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .act {
+      grid-area: 1 / 2;
+    }
+
+    .created,
+    .used,
+    .expires {
+      grid-column: 1 / -1;
+      color: var(--ink-soft);
+      font-size: var(--text-small);
+    }
+
+    .created::before {
+      content: "Created ";
+    }
+
+    .used::before {
+      content: "Last used ";
+    }
+
+    .expires::before {
+      content: "Expires ";
     }
   }
 }

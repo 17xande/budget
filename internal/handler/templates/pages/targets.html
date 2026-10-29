@@ -1,7 +1,9 @@
 {{define "content"}}
 
 <p class="back"><a href="/?month={{.Month}}">← {{month .Month}}</a></p>
-<h1>Targets for {{month .Month}}</h1>
+<div class="page-head">
+  <h1>Targets for {{month .Month}}</h1>
+</div>
 
 <p class="muted">How much each category may spend this month (or, for income, is expected to bring
 in). Leave a box empty for no target. Amounts like <code>1500</code>, <code>1 500.50</code> or
@@ -20,8 +22,8 @@ in). Leave a box empty for no target. Amounts like <code>1500</code>, <code>1 50
 <form method="post" action="/budget/targets">
   {{template "csrf" .CSRFToken}}
   <input type="hidden" name="month" value="{{.Month}}">
-  <div class="scroll-x">
-  <table>
+  <div class="panel flush">
+  <table class="targets">
     <thead><tr><th>Category</th><th class="kind">Kind</th><th class="num">Target (R)</th></tr></thead>
     <tbody>
     {{range .Categories}}
@@ -29,7 +31,7 @@ in). Leave a box empty for no target. Amounts like <code>1500</code>, <code>1 50
         <td><label for="target-{{.ID}}">{{.Name}}</label></td>
         <td class="muted kind">{{.Kind}}</td>
         <td class="num">
-          <input id="target-{{.ID}}" name="target_{{.ID}}" value="{{index $.Values .ID}}" inputmode="decimal" size="10" autocomplete="off">
+          <input id="target-{{.ID}}" class="mono" name="target_{{.ID}}" value="{{index $.Values .ID}}" inputmode="decimal" size="10" autocomplete="off">
           {{with index $.Errors .ID}}<p class="error">{{.}}</p>{{end}}
         </td>
       </tr>

@@ -422,16 +422,22 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 	for _, p := range []string{
 		"/", "/?month=2026-10", "/transactions", "/transactions?month=all", "/transactions?category=none",
 		"/budget/targets?month=2026-10", "/categories", "/rules", "/rules?txn=1", "/settings", "/tokens",
-		"/activity", "/fetch", "/import", "/accounts", "/members", "/password",
+		"/activity", "/activity?via=all", "/fetch", "/import", "/accounts", "/members", "/password",
 	} {
 		fetch(owner, p)
 	}
 	fetch(e.browser(), "/login")
-	if fetched < 19 {
+	if fetched < 20 {
 		t.Fatalf("fetched only %d pages", fetched)
 	}
 	// The sign-in and settings pages share the Ledger page head.
 	for _, p := range []string{"/setup", "/login", "/password", "/settings", "/members", "/accounts", "/fetch"} {
+		if !strings.Contains(pages[p], `<div class="page-head">`) {
+			t.Errorf("%s has no page-head", p)
+		}
+	}
+	// So do the data-management pages (the Overview and Transactions have their own head).
+	for _, p := range []string{"/import", "/categories", "/rules", "/budget/targets?month=2026-10", "/tokens", "/activity"} {
 		if !strings.Contains(pages[p], `<div class="page-head">`) {
 			t.Errorf("%s has no page-head", p)
 		}

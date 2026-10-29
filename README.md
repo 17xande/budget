@@ -6,6 +6,10 @@ are categorised by rules, and are compared against monthly targets per category.
 Go + htmx + a little TypeScript (bundled by Deno), SQLite, one static binary in a
 distroless container behind Traefik.
 
+The interface is the "Ledger" design: IBM Plex, one stylesheet of plain CSS, a segmented
+nav, panels and flat tables, light or dark following the system setting (no toggle).
+Wide tables become cards on a phone, and every page works without JavaScript.
+
 ## Status
 
 | Phase | What | State |
@@ -17,7 +21,7 @@ distroless container behind Traefik.
 | 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
 | 5 | Daily automatic FNB fetch | done — needs your credentials to switch on, see below |
 | 6 | Backups, export, hardening | done |
-| 7 | Restyle to the "Ledger" design: shell, tokens, light/dark (step 2 of 4: shell and Overview done; Transactions and the rest follow) | in progress |
+| 7 | Restyle to the "Ledger" design: shell, tokens, light/dark, then every page (all four steps) | done |
 
 ## Running it
 
