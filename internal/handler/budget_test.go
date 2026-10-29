@@ -213,3 +213,27 @@ func TestBudgetPagesHaveNoInlineCode(t *testing.T) {
 		}
 	}
 }
+
+// An uncategorised row is called out with the uncat class, on the page and in the
+// htmx response alike, so the call-out clears or appears without a reload.
+func TestUncategorisedRowIsCalledOut(t *testing.T) {
+	_, owner := seeded(t)
+	txn, groceries := firstTxnAndGroceries(t, owner)
+	row := `<tr id="txn-` + txn + `" class="uncat">`
+	if !strings.Contains(owner.get("/transactions?month=all").body, row) {
+		t.Fatalf("an uncategorised row has no uncat class; want %s", row)
+	}
+
+	r := owner.htmxPost("/transactions?month=all", "/transactions/"+txn+"/category", url.Values{"category": {groceries}, "return": {"/transactions"}})
+	if strings.Contains(r.body, "uncat") {
+		t.Errorf("htmx response after categorising still says uncat:\n%s", r.body)
+	}
+	if strings.Contains(owner.get("/transactions?month=all").body, row) {
+		t.Error("the page still calls the row out after it was categorised")
+	}
+
+	r = owner.htmxPost("/transactions?month=all", "/transactions/"+txn+"/category", url.Values{"category": {"none"}, "return": {"/transactions"}})
+	if !strings.HasPrefix(strings.TrimSpace(r.body), `<tr id="txn-`+txn+`" class="saved uncat">`) {
+		t.Errorf("clearing the category via htmx does not call the row out again:\n%s", r.body)
+	}
+}

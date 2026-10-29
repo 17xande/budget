@@ -1,6 +1,8 @@
 {{define "content"}}
 
-<h1>Transactions</h1>
+<div class="page-head">
+  <h1>Transactions</h1>
+</div>
 
 {{if not .Accounts}}
 <p>Nothing imported yet. <a href="/import">Import FNB exports</a> to see transactions here.</p>
@@ -45,14 +47,14 @@
   <div><dt>Net</dt><dd class="{{moneyClass .Totals.NetCents}}">{{money .Totals.NetCents}}</dd></div>
   <div><dt>Transactions</dt><dd class="num">{{.Totals.Count}}</dd></div>
 </dl>
-<p class="muted small"><a href="{{.ExportURL}}" download>Download these as CSV</a></p>
-<p class="muted small">These totals count every transaction listed, whatever its category. The
+<p class="hint"><a href="{{.ExportURL}}" download>Download these as CSV</a></p>
+<p class="hint">These totals count every transaction listed, whatever its category. The
 <a href="/">overview</a> is the budget view: it leaves transfers between your own accounts out.</p>
 
 {{if .Truncated}}<p class="notice">Showing the latest {{len .Rows}} of {{.Totals.Count}}; choose a month to see the rest.</p>{{end}}
 
 {{if .Rows}}
-<div class="scroll-x">
+<div class="panel flush scroll-x">
 <table class="txns">
   <thead>
     <tr>
@@ -70,7 +72,7 @@
 </table>
 </div>
 {{else}}
-<p class="muted">No transactions match.</p>
+<p class="hint">No transactions match.</p>
 {{end}}
 {{end}}
 

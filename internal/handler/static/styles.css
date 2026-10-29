@@ -659,23 +659,42 @@ table {
   color: var(--accent);
 }
 
-/* The transaction filters: one row on a wide screen, wrapping on a phone, the
-   button aligned with the controls rather than their labels. */
+/* The transaction filters: one compact row on a wide screen, wrapping on a phone,
+   the button aligned with the controls rather than their labels. The labels stay
+   (a screen reader and a no-CSS browser need them) but are small and quiet; the
+   search box takes whatever width is left. */
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gap-sm) var(--gap);
+  gap: var(--gap-sm);
   align-items: end;
-  margin-block-end: var(--gap-md);
+  margin-block-end: var(--gap);
 
   > .field {
     margin-block-end: 0;
     max-width: none;
     flex: 0 1 auto;
+    min-width: 0;
+
+    > label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
+    }
+
+    &:has(> input[type="search"]) {
+      flex: 1 1 180px;
+    }
+  }
+
+  :where(input, select) {
+    padding: 6px 10px;
   }
 
   input[type="search"] {
-    width: clamp(10rem, 40vw, 18rem);
+    width: 100%;
   }
 }
 
@@ -730,6 +749,25 @@ table {
   }
 }
 
+/* A phone: two selects to a line, the search box and Show on the next. */
+@media (max-width: 40rem) {
+  .filters > .field {
+    flex: 1 1 40%;
+
+    > select {
+      width: 100%;
+    }
+
+    &:has(> input[type="search"]) {
+      flex: 1 1 60%;
+    }
+
+    &:has(> button) {
+      flex: 0 0 auto;
+    }
+  }
+}
+
 .nowrap {
   white-space: nowrap;
 }
@@ -748,15 +786,29 @@ table {
 
     tr {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: var(--gap-xs) var(--gap);
-      padding-block: var(--gap-sm);
+      padding: 10px 12px;
       border-block-end: 1px solid var(--rule);
+    }
+
+    tbody tr:last-child {
+      border-block-end: 0;
     }
 
     td {
       border: none;
       padding: 0;
+    }
+
+    /* The first column is the date here, so the call-out goes on the card. */
+    tr.uncat {
+      box-shadow: inset 3px 0 0 var(--near);
+    }
+
+    /* No hover on a phone: the link is always there. */
+    .rule-link {
+      opacity: 1;
     }
 
     .acct,
@@ -963,10 +1015,66 @@ tr.saved {
   }
 }
 
+/* A quiet link: faint until the row is hovered or focused on a wide screen, always
+   visible on a phone and wherever there is no hover. */
 .rule-link {
   font-size: var(--text-small);
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+@media (hover: hover) and (min-width: 40.0625rem) {
+  .rule-link {
+    opacity: 0;
+  }
+
+  tr:hover .rule-link,
+  tr:focus-within .rule-link,
+  .rule-link:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* The transaction list: the date is muted, a long description breaks anywhere
+   rather than widening the table, and a row with no category is called out. The
+   same class comes back in the htmx response, so it clears when a category is set. */
+table.txns {
+  td.date {
+    color: var(--ink-soft);
+  }
+
+  td.acct {
+    color: var(--ink-soft);
+  }
+
+  td.desc {
+    overflow-wrap: anywhere;
+    min-width: 10rem;
+  }
+
+  td.amt,
+  td.bal {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  tr.uncat td.cat select {
+    border-color: var(--near);
+    color: var(--near);
+  }
+}
+
+@media (min-width: 64.0625rem) {
+  table.txns td.acct {
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 40.0625rem) {
+  table.txns tr.uncat > td:first-child {
+    box-shadow: inset 3px 0 0 var(--near);
+  }
 }
 
 .panel.archived {

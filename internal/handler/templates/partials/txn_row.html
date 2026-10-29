@@ -7,7 +7,7 @@
   same form without JavaScript; the page script hides it once JS is running.
 */}}
 {{define "txn_row"}}
-<tr id="txn-{{.ID}}"{{if .Saved}} class="saved"{{end}}>
+<tr id="txn-{{.ID}}"{{if or .Saved (not .CategoryID.Valid)}} class="{{if .Saved}}saved{{end}}{{if and .Saved (not .CategoryID.Valid)}} {{end}}{{if not .CategoryID.Valid}}uncat{{end}}"{{end}}>
   <td class="date nowrap">{{date .PostedOn}}</td>
   {{if not .OneAccount}}<td class="acct">{{.AccountName}}</td>{{end}}
   <td class="desc">{{.Description}} <a class="rule-link" href="/rules?txn={{.ID}}" title="Make a rule from this transaction">+ rule</a></td>
