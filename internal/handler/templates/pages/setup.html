@@ -1,6 +1,8 @@
 {{define "content"}}
 
-<h1>Set up Budget</h1>
+<div class="page-head">
+  <h1>Set up Budget</h1>
+</div>
 
 <p class="notice">Nobody has claimed this budget yet. The server printed a one-time
 setup token when it started; paste it below with the account you will sign in with.
@@ -14,7 +16,7 @@ You can add a second person afterwards.</p>
     <div class="field">
       <label for="token">Token</label>
       {{/* Never re-filled after a failed attempt, and autocomplete off: it is a credential. */}}
-      <input id="token" name="token" type="text" autocomplete="off" autofocus required>
+      <input id="token" name="token" type="text" class="mono" spellcheck="false" autocapitalize="off" autocomplete="off" autofocus required>
       {{template "err" index .Errors "token"}}
       <small class="hint">From the server log: <code>docker compose logs budget</code>,
       or the terminal running <code>make run</code>.</small>

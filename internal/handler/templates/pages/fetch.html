@@ -1,7 +1,9 @@
 {{define "content"}}
 
 <p class="back"><a href="/settings">← Settings</a></p>
-<h1>Bank fetch</h1>
+<div class="page-head">
+  <h1>Bank fetch</h1>
+</div>
 
 {{if .Error}}<p class="notice problem" role="alert">{{.Error}}</p>{{end}}
 
@@ -25,7 +27,7 @@ failure on its own: repeated failed logins can lock a bank profile.</p>
 
 <h2>Recent runs</h2>
 {{if .Runs}}
-<div class="scroll-x">
+<div class="panel flush">
 <table class="runs">
   <thead><tr><th>Started</th><th>How</th><th>Result</th></tr></thead>
   <tbody>

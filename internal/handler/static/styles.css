@@ -460,6 +460,7 @@ button,
   border-radius: var(--radius-lg);
   padding: var(--gap);
   margin-block-end: var(--gap);
+  margin-inline: 0;     /* a fieldset's default 2px side margin */
   min-inline-size: 0;   /* a fieldset will not shrink below its content without this */
   overflow-x: auto;     /* a wide table scrolls here, never the page */
 
@@ -561,11 +562,13 @@ button,
     border: 0;
     border-radius: 0;
     padding: 0;
+    margin-inline: 0;     /* a fieldset's default 2px side margin */
     margin-block-end: var(--gap);
     overflow: visible;
 
     > legend {
       padding-inline: 0;
+      margin-block-end: var(--gap-sm);
     }
   }
 }
@@ -1089,11 +1092,86 @@ label.inline {
   font-weight: normal;
 }
 
+/* The Settings index: a panel of rows, the link on the left and what it is for
+   in muted text beside it (below it on a phone). */
 .link-list {
-  padding-inline-start: 1.2rem;
+  list-style: none;
+  margin-block: 0 var(--gap-lg);
+  padding: 0;
 
-  li + li {
-    margin-block-start: var(--gap-sm);
+  > li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--gap);
+    align-items: baseline;
+    padding: var(--gap-sm) var(--gap);
+
+    + li {
+      border-block-start: 1px solid var(--rule);
+    }
+
+    > a {
+      font-weight: 500;
+      min-inline-size: 9rem;
+    }
+  }
+}
+
+/* On a phone the description goes under the link, on its own line every time. */
+@media (max-width: 40rem) {
+  .link-list > li > a {
+    flex-basis: 100%;
+  }
+}
+
+/* A credential or token typed by hand: mono, so look-alike characters differ. */
+input.mono {
+  font-family: var(--font-mono);
+}
+
+/* The per-account fetch switch sits under that account's form, set off by a rule. */
+.fetch-toggle {
+  border-block-start: 1px solid var(--rule);
+  padding-block-start: var(--gap-sm);
+}
+
+/* Fetch history: the failure message can be a long unbroken error, so it wraps
+   anywhere. On a phone each run is a small card (when and how, then the result)
+   rather than three columns the result is cut off in. */
+table.runs td:last-child {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  table.runs {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--gap-xs) var(--gap);
+      padding: var(--gap-sm) var(--gap);
+      border-block-end: 1px solid var(--rule);
+    }
+
+    tr:last-child {
+      border-block-end: 0;
+    }
+
+    td {
+      border: none;
+      padding: 0;
+    }
+
+    td:last-child {
+      grid-column: 1 / -1;
+    }
+
+    td:nth-child(2) {
+      color: var(--ink-soft);
+    }
   }
 }
 

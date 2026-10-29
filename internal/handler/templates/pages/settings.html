@@ -1,8 +1,10 @@
 {{define "content"}}
 
-<h1>Settings</h1>
+<div class="page-head">
+  <h1>Settings</h1>
+</div>
 
-<ul class="link-list">
+<ul class="panel flush link-list">
   <li><a href="/fetch">Bank fetch</a> <span class="muted">— the daily FNB download, and its history</span></li>
   <li><a href="/accounts">Accounts</a> <span class="muted">— names, and which kind each is</span></li>
   <li><a href="/members">Members</a> <span class="muted">— who can sign in</span></li>
@@ -15,11 +17,11 @@
 {{if not .BackupsOn}}
 <p class="notice">Backups are off (<code>BACKUP_KEEP=0</code>).</p>
 {{else if .BackupErr}}
-<p class="notice error">The backup folder could not be read; see the server log.</p>
+<p class="notice problem">The backup folder could not be read; see the server log.</p>
 {{else if not .Latest}}
-<p class="notice error">No backup has been made yet. One is made at startup and then daily; see the server log.</p>
+<p class="notice problem">No backup has been made yet. One is made at startup and then daily; see the server log.</p>
 {{else}}
-<p{{if .Stale}} class="notice error"{{end}}>Latest backup: <code>{{.Latest.Name}}</code>, made {{template "time" .Latest.ModTime}}.
+<p class="notice{{if .Stale}} problem{{end}}">Latest backup: <code>{{.Latest.Name}}</code>, made {{template "time" .Latest.ModTime}}.
 {{.Backups}} kept.{{if .Stale}} That is more than two days old: backups are failing; see the server log.{{end}}</p>
 {{end}}
 <p class="muted small">Backups sit beside the database on this machine, so they undo a mistake, not a lost disk.

@@ -430,6 +430,12 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 	if fetched < 19 {
 		t.Fatalf("fetched only %d pages", fetched)
 	}
+	// The sign-in and settings pages share the Ledger page head.
+	for _, p := range []string{"/setup", "/login", "/password", "/settings", "/members", "/accounts", "/fetch"} {
+		if !strings.Contains(pages[p], `<div class="page-head">`) {
+			t.Errorf("%s has no page-head", p)
+		}
+	}
 	for p, body := range pages {
 		if !strings.Contains(body, "</html>") {
 			t.Errorf("%s did not render a page", p)
