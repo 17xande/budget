@@ -8,7 +8,7 @@ distroless container behind Traefik.
 
 The interface is the "Ledger" design: IBM Plex, one stylesheet of plain CSS, a segmented
 nav, panels and flat tables, light or dark following the system setting (no toggle).
-Wide tables become cards on a phone, and every page works without JavaScript.
+Wide tables (transactions, import history, tokens, activity, fetch runs) become cards on a phone; the others fit or scroll inside their panel. Every page works without JavaScript.
 
 ## Status
 

@@ -249,6 +249,9 @@ func TestLoginFailures(t *testing.T) {
 	if r.code != http.StatusUnauthorized || !strings.Contains(r.body, "Email or password is incorrect.") {
 		t.Fatalf("wrong password: %d", r.code)
 	}
+	if !strings.Contains(r.body, `<p class="notice problem" role="alert">Email or password is incorrect.`) {
+		t.Error("the sign-in error is not a role=alert notice problem")
+	}
 	unknown := b.login("nobody@example.com", "wrong password!!")
 	// One message for every cause, or the form tells you who has an account.
 	if unknown.code != r.code || !strings.Contains(unknown.body, "Email or password is incorrect.") {
@@ -419,6 +422,12 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 	owner.post("/rules", "/rules", url.Values{"pattern": {"checkers"}, "category": {groceries}, "account": {"all"}, "apply": {"1"}})
 	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"150,00"}})
 	owner.post("/tokens", "/tokens", url.Values{"name": {"laptop"}, "days": {"90"}})
+	// One archived category, so the Restore button and the archived badge render.
+	if m := regexp.MustCompile(`action="/categories/(\d+)/archive"`).FindStringSubmatch(owner.get("/categories").body); m != nil {
+		owner.post("/categories", "/categories/"+m[1]+"/archive", url.Values{"archived": {"1"}})
+	} else {
+		t.Fatal("no category to archive")
+	}
 	for _, p := range []string{
 		"/", "/?month=2026-10", "/transactions", "/transactions?month=all", "/transactions?category=none",
 		"/budget/targets?month=2026-10", "/categories", "/rules", "/rules?txn=1", "/settings", "/tokens",
@@ -441,6 +450,47 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 		if !strings.Contains(pages[p], `<div class="page-head">`) {
 			t.Errorf("%s has no page-head", p)
 		}
+	}
+	// Destructive and state-changing controls keep their labels, and every POST form
+	// carries a CSRF token (a form without one fails only in a browser).
+	for p, want := range map[string][]string{
+		"/tokens":     {">Revoke<"},
+		"/rules":      {">Delete<"},
+		"/categories": {">Archive<", ">Restore<", `<span class="badge">archived</span>`},
+	} {
+		for _, w := range want {
+			if !strings.Contains(pages[p], w) {
+				t.Errorf("%s no longer renders %q", p, w)
+			}
+		}
+	}
+	formRe := regexp.MustCompile(`(?s)<form method="post".*?</form>`)
+	forms := 0
+	for p, body := range pages {
+		for _, f := range formRe.FindAllString(body, -1) {
+			forms++
+			if !strings.Contains(f, `name="csrf_token"`) {
+				t.Errorf("%s has a POST form without a CSRF token: %.80s", p, f)
+			}
+		}
+	}
+	if forms < 20 {
+		t.Errorf("checked only %d POST forms", forms)
+	}
+	// An error notice is a notice problem; "notice error" has no style.
+	for p, body := range pages {
+		if strings.Contains(body, `class="notice error"`) {
+			t.Errorf("%s has an unstyled notice error", p)
+		}
+	}
+	for _, f := range []string{"templates/pages/fetch.html", "templates/pages/login.html"} {
+		src, _ := os.ReadFile(f)
+		if !strings.Contains(string(src), `<p class="notice problem" role="alert">{{.Error}}</p>`) {
+			t.Errorf("%s error notice is not a role=alert notice problem", f)
+		}
+	}
+	if src, _ := os.ReadFile("templates/pages/settings.html"); strings.Contains(string(src), "notice error") || strings.Count(string(src), `notice problem`) < 2 || !strings.Contains(string(src), "notice{{if .Stale}} problem{{end}}") {
+		t.Error("settings backup problems are not all notice problem")
 	}
 	for p, body := range pages {
 		if !strings.Contains(body, "</html>") {

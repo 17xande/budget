@@ -242,6 +242,10 @@ func TestUncategorisedRowIsCalledOut(t *testing.T) {
 	if strings.Contains(owner.get("/transactions?month=all").body, row) {
 		t.Error("the page still calls the row out after it was categorised")
 	}
+	// A categorised, unsaved row has no class attribute at all, not an empty one.
+	if !strings.Contains(owner.get("/transactions?month=all").body, `<tr id="txn-`+txn+`">`) {
+		t.Error("a categorised row does not start with a bare <tr id=\"txn-N\">")
+	}
 
 	r = owner.htmxPost("/transactions?month=all", "/transactions/"+txn+"/category", url.Values{"category": {"none"}, "return": {"/transactions"}})
 	if !strings.HasPrefix(strings.TrimSpace(r.body), `<tr id="txn-`+txn+`" class="saved uncat">`) {

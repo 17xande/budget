@@ -186,31 +186,6 @@ main {
   padding-block: var(--gap-md) var(--gap-xl);
 }
 
-.site-footer {
-  border-block-start: 1px solid var(--rule);
-  background: var(--paper-sunk);
-  color: var(--ink-soft);
-  font-size: var(--text-small);
-  padding-block: var(--gap-lg);
-
-  a {
-    color: inherit;
-  }
-
-  .columns {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap-lg);
-    justify-content: space-between;
-  }
-
-  nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-xs);
-  }
-}
-
 /* One container class does the width and the gutters everywhere, so sections line
    up down the page without each one restating the measurement. */
 .inner {
@@ -438,6 +413,7 @@ button,
 /* The explanatory line under a field or a heading. Says what the input means
    when the label alone cannot. */
 .hint {
+  overflow-wrap: anywhere;
   display: block;
   font-size: var(--text-small);
   color: var(--ink-soft);
@@ -503,14 +479,6 @@ button,
   }
 }
 
-/* A set of tick boxes read as a list rather than a column of blocks:
-   categories on a product, variants on a file. */
-.checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-sm) var(--gap-md);
-}
-
 /* The buttons at the end of a form, and the quiet link beside them. */
 .actions {
   display: flex;
@@ -532,25 +500,6 @@ button,
 
   > h1 {
     margin-block-end: 0;
-  }
-}
-
-/* A table of key and value rather than of columns — the payment facts on an
-   order. The keys are labels, not data, so they get a fixed column and the
-   values line up down the page. */
-.facts {
-  max-width: 44rem;
-
-  th {
-    inline-size: 13rem;
-    color: var(--ink-soft);
-    font-weight: 500;
-  }
-
-  /* One fact per row, so a number belongs beside its label rather than pushed to
-     an edge the eye has to travel to. It keeps the tabular figures. */
-  td.num {
-    text-align: start;
   }
 }
 
@@ -582,6 +531,7 @@ button,
 }
 
 .notice {
+  overflow-wrap: anywhere;
   border: 1px solid var(--rule);
   border-inline-start: 3px solid var(--accent);
   border-radius: var(--radius);
@@ -650,10 +600,6 @@ table {
   table :where(th, td) {
     padding: 8px 10px;
   }
-}
-
-.scroll-x {
-  overflow-x: auto;
 }
 
 /* --- Ledger ------------------------------------------------------------- */
@@ -1115,19 +1061,31 @@ table.txns {
     margin: 0;
   }
 
-  > form:first-child {
+  > form.field-row {
     flex: 1 1 20rem;
+  }
+
+  /* An error for this row sits above its form, the full width of the row. */
+  > .error {
+    flex: 1 0 100%;
+    max-inline-size: none;   /* p has a reading measure; the basis would be clamped to it */
+    order: -1;
+    margin: 0;
   }
 }
 
 @media (max-width: 40rem) {
-  .rows.cats > .item > form:first-child > .field:first-child,
-  .rows.cats > .item > form:first-child > .field:first-child > input {
+  .rows.cats > .item > form.field-row > .field:first-child,
+  .rows.cats > .item > form.field-row > .field:first-child > input {
     inline-size: 100%;
   }
 }
 
 /* A figure typed into a box: mono and right-aligned like the figures around it. */
+table.targets td:first-child {
+  overflow-wrap: anywhere;
+}
+
 table.targets input {
   font-family: var(--font-mono);
   text-align: end;
@@ -1166,6 +1124,13 @@ label.inline {
   }
 }
 
+/* The dash between link and description only reads on one line. */
+@media (min-width: 40.0625rem) {
+  .link-list > li > .muted::before {
+    content: "— ";
+  }
+}
+
 /* On a phone the description goes under the link, on its own line every time. */
 @media (max-width: 40rem) {
   .link-list > li > a {
@@ -1182,6 +1147,10 @@ input.mono {
 .fetch-toggle {
   border-block-start: 1px solid var(--rule);
   padding-block-start: var(--gap-sm);
+
+  .badge {
+    align-self: center;
+  }
 }
 
 /* Fetch history: the failure message can be a long unbroken error, so it wraps
@@ -1249,10 +1218,6 @@ table.runs td:last-child {
       padding: 0;
     }
 
-    .change {
-      overflow-wrap: anywhere;
-    }
-
     .when {
       grid-area: 1 / 1;
       color: var(--ink-soft);
@@ -1273,8 +1238,14 @@ table.runs td:last-child {
   }
 }
 
+/* Long unbroken values (a pasted description, a token name) wrap at any width. */
+table.activity .change,
+table.tokens .name {
+  overflow-wrap: anywhere;
+}
+
 /* Import history and the token list as cards on a phone. Import: file name and
-   when on top, then the account and the two counts on one line (or the failure,
+   when on top, then the account, then the two counts on one line (or the failure,
    whole), then who. Tokens: name and Revoke, then the three dates. */
 @media (max-width: 40rem) {
   table.imports,
@@ -1357,7 +1328,6 @@ table.runs td:last-child {
     .name {
       grid-area: 1 / 1;
       font-weight: 500;
-      overflow-wrap: anywhere;
     }
 
     .act {
@@ -1387,17 +1357,6 @@ table.runs td:last-child {
 }
 
 /* --- Utility ------------------------------------------------------------- */
-
-.stack > * + * {
-  margin-block-start: var(--gap);
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-sm);
-  align-items: center;
-}
 
 .muted {
   color: var(--ink-soft);
