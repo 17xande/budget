@@ -52,6 +52,18 @@ func formatRand(cents int64) string {
 	return sign + "R" + b.String()
 }
 
+// formatOver renders how far over a target a line is, always at least R1: an
+// overage of a few cents is still over, and "R0 over" would contradict the row.
+func formatOver(cents int64) string {
+	if cents < 0 {
+		cents = -cents
+	}
+	if cents > 0 && cents < 100 {
+		cents = 100
+	}
+	return formatRand(cents)
+}
+
 // lineState is a category's status for the overview: "" with no target, "over"
 // past the target, "near" from 90% of it, else "ok". It only compares figures
 // the Line already has.
@@ -61,6 +73,8 @@ func lineState(l budget.Line) string {
 		return ""
 	case l.Over():
 		return "over"
+	case l.Target.Int64 == 0:
+		return "ok" // nothing spent against a zero target (spent > 0 is over, above)
 	case l.SpentCents()*10 >= l.Target.Int64*9:
 		return "near"
 	}

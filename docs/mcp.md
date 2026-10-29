@@ -30,7 +30,7 @@ it ends your sessions.
 | `list_categories` | read | Categories and their kind (expense / income / transfer). |
 | `list_rules` | read | Rules, with how many transactions each matches. |
 | `search_transactions` | read | Month or date range, account, category, uncategorised, text. Total and in/out over every match; at most 200 rows a page. |
-| `spending_summary` | read | One month against its targets — the same `budget.Summary` the overview page shows. `remaining` is target minus spent over the expense categories that have a target (uncategorised money not counted; over-spent categories subtract). |
+| `spending_summary` | read | One month against its targets — the same `budget.Summary` the overview page shows. top-level `remaining` is target minus spent over the expense categories that have a target (uncategorised money not counted; over-spent categories subtract). |
 | `list_imports` | read | Recent imports and their counts or errors. |
 | `categorise_transactions` | write | Up to 100 `{transaction_id, category_id}` changes, all or nothing. |
 | `create_rule` / `update_rule` / `delete_rule` | write | Rules, optionally applied to uncategorised transactions now. |

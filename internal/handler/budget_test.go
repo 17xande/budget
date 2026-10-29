@@ -153,6 +153,20 @@ func TestTargetsAndDashboard(t *testing.T) {
 	if strings.Contains(home, "179.80") {
 		t.Error("the overview should round to whole rand")
 	}
+	// The Total row: target R150, spent R180, and R30 over, in the footer cells.
+	foot := home[strings.Index(home, "<tfoot>"):strings.Index(home, "</tfoot>")]
+	for _, want := range []string{`<td class="num nowrap hide-s">R150</td>`, `<td class="num nowrap">R180</td>`, "R30 over"} {
+		if !strings.Contains(foot, want) {
+			t.Errorf("Total row lacks %q:\n%s", want, foot)
+		}
+	}
+
+	// One cent over a R179.79 target still says over, never "R0 over".
+	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"179,79"}})
+	home = owner.get("/?month=2026-10").body
+	if strings.Count(home, "R1 over") != 2 || strings.Contains(home, "R0 over") {
+		t.Errorf("a cent over should read R1 over in the row and the Total row:\n%s", home)
+	}
 
 	// At 92% of a R 195.00 target the line is near, not over, and has R15 left.
 	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"195,00"}})

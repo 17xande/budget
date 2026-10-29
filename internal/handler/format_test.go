@@ -63,16 +63,27 @@ func TestLineState(t *testing.T) {
 		l    budget.Line
 		want string
 	}{
-		"no target":          {line(0, 5000, false), ""},
-		"zero spent":         {line(10000, 0, true), "ok"},
-		"89.9 percent":       {line(10000, 8999, true), "ok"},
-		"90 percent":         {line(10000, 9000, true), "near"},
-		"exactly the target": {line(10000, 10000, true), "near"},
-		"over":               {line(10000, 10001, true), "over"},
-		"refunds":            {line(10000, -500, true), "ok"},
+		"no target":           {line(0, 5000, false), ""},
+		"zero spent":          {line(10000, 0, true), "ok"},
+		"89.9 percent":        {line(10000, 8999, true), "ok"},
+		"90 percent":          {line(10000, 9000, true), "near"},
+		"exactly the target":  {line(10000, 10000, true), "near"},
+		"over":                {line(10000, 10001, true), "over"},
+		"refunds":             {line(10000, -500, true), "ok"},
+		"zero target, zero":   {line(0, 0, true), "ok"},
+		"zero target, spent":  {line(0, 1, true), "over"},
+		"zero target, refund": {line(0, -500, true), "ok"},
 	} {
 		if got := lineState(tc.l); got != tc.want {
 			t.Errorf("%s: lineState = %q, want %q", name, got, tc.want)
+		}
+	}
+}
+
+func TestFormatOver(t *testing.T) {
+	for cents, want := range map[int64]string{-1: "R1", -49: "R1", -100: "R1", -2980: "R30", 1: "R1", 0: "R0", -1450000: "R14\u00a0500"} {
+		if got := formatOver(cents); got != want {
+			t.Errorf("formatOver(%d) = %q, want %q", cents, got, want)
 		}
 	}
 }

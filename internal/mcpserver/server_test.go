@@ -344,6 +344,11 @@ func TestSpendingSummaryMatchesTheStore(t *testing.T) {
 	f.budget.SaveRule(0, "checkers", food, 0, budget.Actor{Via: budget.ViaWeb})
 	f.budget.ApplyRules(budget.Scope{})
 	f.budget.SetTarget("2026-10", food, 15000, budget.Actor{Via: budget.ViaWeb})
+	// Spending in a category with no target: in Spent, but not in Remaining, so
+	// remaining differs from target minus spent.
+	savings := f.category("Savings", budget.KindExpense)
+	f.budget.SaveRule(0, "savings", savings, 0, budget.Actor{Via: budget.ViaWeb})
+	f.budget.ApplyRules(budget.Scope{})
 
 	s := f.connect(f.token)
 	var out struct {
@@ -365,7 +370,7 @@ func TestSpendingSummaryMatchesTheStore(t *testing.T) {
 		t.Fatalf("mcp %+v vs store spent %d uncat %d", out, want.SpentCents, want.UncatCount)
 	}
 	if out.Remaining.Cents != want.RemainingCents() || out.Remaining.Cents != -2980 {
-		t.Errorf("remaining %d, store %d, want -2980", out.Remaining.Cents, want.RemainingCents())
+		t.Errorf("remaining %d, store %d, want -2980 (spent %d, target %d)", out.Remaining.Cents, want.RemainingCents(), want.SpentCents, want.TargetCents)
 	}
 	e := out.Expenses[0]
 	if e.Name != "Groceries" || e.Spent.Cents != 17980 || !e.Over || e.Remaining == nil || e.Remaining.Cents != -2980 {

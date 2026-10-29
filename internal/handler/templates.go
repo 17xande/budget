@@ -88,11 +88,15 @@ func (h *Handler) templateFuncs() template.FuncMap {
 		"money":     formatMoney,
 		"rand":      formatRand,
 		"lineState": lineState,
-		"abs": func(n int64) int64 {
-			if n < 0 {
-				return -n
+		"over":      formatOver,
+		"active": func(lines []budget.Line) []budget.Line {
+			var out []budget.Line
+			for _, l := range lines {
+				if l.Count > 0 || l.Target.Valid {
+					out = append(out, l)
+				}
 			}
-			return n
+			return out
 		},
 		"moneyClass": moneyClass,
 		"month":      monthLabel,
