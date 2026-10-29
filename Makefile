@@ -29,6 +29,10 @@ test: bundle
 	deno fmt --check src/ts deno.json
 	deno lint src/ts
 
+## deploy: test, build the image, push it to ghcr.io, pull and restart it on home-docker
+deploy:
+	./scripts/deploy.sh
+
 ## fmt: format Go and TypeScript
 fmt:
 	gofmt -w .

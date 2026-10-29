@@ -1,0 +1,50 @@
+# The Docker host's stack (home-docker): the app, and a Cloudflare tunnel that is
+# the only way in, the same shape as the host's other apps. Nothing is published
+# on the host. The tunnel reaches the app over this file's own compose network, so
+# its ingress (set in Cloudflare, as the tunnel is remotely managed) is
+# `http://budget:8080`.
+#
+#   make deploy        builds the image, pushes it to ghcr.io, then pulls and
+#                      restarts it here over ssh
+#
+# TUNNEL_TOKEN (and TAG, written by the deploy script) live in a .env beside this file;
+# it is gitignored and created on the host, never committed.
+#
+# The daily FNB fetch is not part of this stack yet. It needs the `chrome`
+# service and the fnb_password secret from compose.yaml, plus FNB_USERNAME in
+# .env; add them here when you switch it on.
+services:
+  budget:
+    # Built and pushed by `make deploy` (scripts/deploy.sh); the host only pulls.
+    # TAG is written to this directory's .env by that script.
+    image: ghcr.io/17xande/budget:${TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "8080"
+    # No env_file: .env holds the tunnel token, which the app has no business
+    # seeing. Compose still reads it for the ${...} below. App settings go here.
+    environment:
+      # Cloudflare terminates https, so the browser always sees https and the
+      # session cookie stays Secure (the default).
+      COOKIE_SECURE: "true"
+      # Only the tunnel can reach the port, and it arrives from this compose
+      # network, so trust that range for CF-Connecting-IP. Without it every
+      # request shares the proxy's address and the sign-in rate limit is one
+      # bucket for everyone.
+      TRUSTED_PROXIES: 172.16.0.0/12
+    volumes:
+      - budget-data:/data
+    mem_limit: 512m
+
+  cloudflared:
+    # Pinned: `latest` would change what runs on the next `up --build`.
+    image: cloudflare/cloudflared:2026.10.0
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      - budget
+
+volumes:
+  budget-data:
