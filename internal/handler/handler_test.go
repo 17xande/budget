@@ -398,14 +398,27 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 		t.Fatalf("checked only %d template files", n)
 	}
 
-	e := newEnv(t)
-	anon := e.browser()
+	// Every GET page, with data behind it, so the loops and conditionals in the
+	// templates actually run: an import, categories, a rule, a target, a token and
+	// the audit entries those writes leave.
+	anon := newEnv(t).browser()
 	pages := map[string]string{"/setup": anon.get("/setup").body}
-	owner := e.claim()
-	for _, p := range []string{"/", "/members", "/password"} {
+	e, owner := seeded(t)
+	_, groceries := firstTxnAndGroceries(t, owner)
+	owner.post("/rules", "/rules", url.Values{"pattern": {"checkers"}, "category": {groceries}, "account": {"all"}, "apply": {"1"}})
+	owner.post("/budget/targets?month=2026-10", "/budget/targets", url.Values{"month": {"2026-10"}, "target_" + groceries: {"150,00"}})
+	owner.post("/tokens", "/tokens", url.Values{"name": {"laptop"}, "days": {"90"}})
+	for _, p := range []string{
+		"/", "/?month=2026-10", "/transactions", "/transactions?month=all", "/transactions?category=none",
+		"/budget/targets?month=2026-10", "/categories", "/rules", "/rules?txn=1", "/settings", "/tokens",
+		"/activity", "/fetch", "/import", "/accounts", "/members", "/password",
+	} {
 		pages[p] = owner.get(p).body
 	}
 	pages["/login"] = e.browser().get("/login").body
+	if len(pages) < 14 {
+		t.Fatalf("rendered only %d pages", len(pages))
+	}
 	for p, body := range pages {
 		if !strings.Contains(body, "</html>") {
 			t.Errorf("%s did not render a page", p)

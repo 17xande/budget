@@ -3,6 +3,8 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,10 +37,25 @@ func TestSecurityHeaders(t *testing.T) {
 // Pin the policy, so loosening it is a deliberate edit to this test and not a side
 // effect of some other change.
 func TestCSPHasNoUnsafeInline(t *testing.T) {
-	want := "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; " +
+	want := "default-src 'none'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; " +
+		"script-src 'self'; connect-src 'self'; " +
 		"img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 	if middleware.CSP != want {
 		t.Errorf("CSP changed:\n got %s\nwant %s", middleware.CSP, want)
+	}
+	// The web fonts are a deliberate, narrow hole: these two hosts are the only
+	// external origins, and neither is allowed to serve script.
+	var hosts []string
+	for _, tok := range strings.Fields(middleware.CSP) {
+		if strings.Contains(tok, "://") {
+			hosts = append(hosts, strings.TrimSuffix(tok, ";"))
+		}
+	}
+	if !slices.Equal(hosts, []string{"https://fonts.googleapis.com", "https://fonts.gstatic.com"}) {
+		t.Errorf("external hosts in the CSP = %q", hosts)
+	}
+	if strings.Contains(middleware.CSP, "unsafe-inline") {
+		t.Error("CSP allows unsafe-inline")
 	}
 }
 

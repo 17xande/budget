@@ -20,6 +20,14 @@
                       {"code":"[45]..","swap":true,"error":true}]}'>
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
+{{/*
+  IBM Plex from Google Fonts, kept off our server by choice. The CSP names exactly
+  these two hosts (style-src and font-src). styles.css keeps system fallbacks, so a
+  blocked or slow font host costs the typeface and nothing else.
+*/}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="{{asset "styles.css"}}">
 <script src="{{asset "htmx.min.js"}}" defer></script>
 <script src="{{asset "dist/app.js"}}" type="module"></script>

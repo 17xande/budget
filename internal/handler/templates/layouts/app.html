@@ -9,7 +9,7 @@
 <header class="site-header">
   <div class="inner">
     <a class="brand" href="/">Budget</a>
-    <nav>
+    <nav aria-label="Pages">
       <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>Overview</a>
       <a href="/transactions"{{if eq .Nav "transactions"}} aria-current="page"{{end}}>Transactions</a>
       <a href="/categories"{{if eq .Nav "categories"}} aria-current="page"{{end}}>Categories</a>

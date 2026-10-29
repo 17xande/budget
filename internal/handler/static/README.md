@@ -1,7 +1,9 @@
 # Bundled assets
 
 Everything here is embedded by `//go:embed static` in `internal/handler/static.go`
-and served from `/static/`, which is why the CSP needs nothing beyond `'self'`.
+and served from `/static/`. The one thing not here is the typefaces: IBM Plex comes
+from Google Fonts (a `<link>` in `templates/partials/document.html`), and that is the
+only reason the CSP names anything beyond `'self'`. Nothing is vendored for it.
 
 `.md` and `.map` are deliberately absent from the content-type allowlist in
 `static.go`, so this file (and any sourcemap) is embedded but not reachable over

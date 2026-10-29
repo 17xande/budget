@@ -17,6 +17,7 @@ distroless container behind Traefik.
 | 4 | MCP server: AI reads the budget and categorises, with tokens and an undoable activity log | done — see [docs/mcp.md](docs/mcp.md) |
 | 5 | Daily automatic FNB fetch | done — needs your credentials to switch on, see below |
 | 6 | Backups, export, hardening | done |
+| 7 | Restyle to the "Ledger" design: shell, tokens, light/dark (step 1 of 4; page bodies follow) | in progress |
 
 ## Running it
 
@@ -141,8 +142,17 @@ dependency, and why:
 
 Deliberately not taken: a router (the stdlib mux does methods and wildcards), a
 validation library, an ORM or sqlc (a handful of hand-written typed queries), a
-CSS framework, a chart library (charts will be server-rendered SVG), web fonts.
+CSS framework, a chart library (charts will be server-rendered SVG).
 `chromedp` drives the FNB login; see below.
+
+**Web fonts, from Google.** The look (IBM Plex Sans and Mono) is loaded from Google
+Fonts by a `<link>` in the layout head, kept off our own server by choice. The CSP
+names exactly two extra hosts: `https://fonts.googleapis.com` in `style-src` and
+`https://fonts.gstatic.com` in `font-src`; no script, no connection and no bank data
+goes to either, and a test pins that those are the only external origins. The cost is
+privacy: Google sees a page view from each browser that opens the app. The font stacks
+keep `system-ui` / `ui-monospace` fallbacks, so the app works fully if the host is
+blocked or unreachable.
 
 **SQLite, one instance.** It changes to Postgres only if a second app instance or
 another process needs the database. STRICT tables throughout; no migrations while

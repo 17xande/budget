@@ -11,7 +11,10 @@ import (
 //
 // Everything is served from this origin: the stylesheet, the vendored htmx and the
 // Deno-built bundle are all embedded in the binary. So the policy allows 'self' and
-// nothing else, and in particular no 'unsafe-inline' for either styles or scripts.
+// nothing else, with one deliberate exception: the typefaces come from Google Fonts,
+// so style-src also names https://fonts.googleapis.com (the font stylesheet) and
+// font-src names https://fonts.gstatic.com (the files). No script and no connection
+// goes to either, and there is no 'unsafe-inline' for either styles or scripts.
 // That is what makes the zero-inline-style and zero-on*= rules in the templates
 // load-bearing rather than tidiness: an onchange= renders, returns 200, passes
 // every handler test, and silently does nothing in a real browser.
@@ -19,7 +22,8 @@ import (
 // connect-src 'self' because htmx swaps are XHR; script-src covers only the
 // <script> tag, so without it every hx-get is refused with nothing but a console
 // message to say why.
-const CSP = "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; " +
+const CSP = "default-src 'none'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; " +
+	"script-src 'self'; connect-src 'self'; " +
 	"img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 
 // StaticPrefix is the asset tree. Its responses are content-addressed and
