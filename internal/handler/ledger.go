@@ -66,6 +66,19 @@ type txnRow struct {
 	Error string
 }
 
+// RowClass is the <tr> class list: "saved" for a row just changed, "uncat" for
+// one with no category. Empty when neither applies.
+func (r txnRow) RowClass() string {
+	var c []string
+	if r.Saved {
+		c = append(c, "saved")
+	}
+	if !r.CategoryID.Valid {
+		c = append(c, "uncat")
+	}
+	return strings.Join(c, " ")
+}
+
 // Transactions lists transactions by month, account, category and description,
 // each with its category form. The month defaults to the latest with data.
 func (h *Handler) Transactions(w http.ResponseWriter, r *http.Request) {

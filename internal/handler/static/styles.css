@@ -1016,14 +1016,14 @@ tr.saved {
 }
 
 /* A quiet link: faint until the row is hovered or focused on a wide screen, always
-   visible on a phone and wherever there is no hover. */
+   visible on a phone and wherever there is no hover or any touch pointer. */
 .rule-link {
   font-size: var(--text-small);
   color: var(--ink-faint);
   white-space: nowrap;
 }
 
-@media (hover: hover) and (min-width: 40.0625rem) {
+@media (hover: hover) and (not (any-pointer: coarse)) and (min-width: 40.0625rem) {
   .rule-link {
     opacity: 0;
   }

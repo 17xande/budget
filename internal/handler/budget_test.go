@@ -73,7 +73,18 @@ func TestCategoriseWithHTMX(t *testing.T) {
 	_, owner := seeded(t)
 	txn, groceries := firstTxnAndGroceries(t, owner)
 
+	// The swap contract: the response replaces the whole row, on the page's own
+	// row and on the one that comes back.
+	page := owner.get("/transactions?month=all").body
 	r := owner.htmxPost("/transactions?month=all", "/transactions/"+txn+"/category", url.Values{"category": {groceries}, "return": {"/transactions"}})
+	for _, attr := range []string{`hx-target="closest tr"`, `hx-swap="outerHTML"`} {
+		if !strings.Contains(page, attr) {
+			t.Errorf("page row lacks %s", attr)
+		}
+		if !strings.Contains(r.body, attr) {
+			t.Errorf("htmx response row lacks %s", attr)
+		}
+	}
 	if r.code != 200 || !strings.HasPrefix(strings.TrimSpace(r.body), `<tr id="txn-`+txn+`" class="saved">`) {
 		t.Fatalf("htmx categorise: %d\n%s", r.code, r.body)
 	}
