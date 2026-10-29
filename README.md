@@ -163,7 +163,7 @@ keeping. Money will be integer cents.
 sha256 in a table, so a password change ends every session. The first account is
 claimed with a one-time token printed at boot, never a default password.
 
-**Security baseline.** A single CSP of `'self'` with no `'unsafe-inline'`, so no
+**Security baseline.** A single CSP that is `'self'` except for the two font hosts (`https://fonts.googleapis.com` in `style-src` only, `https://fonts.gstatic.com` in `font-src` only), with no `'unsafe-inline'`, so no
 template may carry a `style=` or `on*=` attribute (a test enforces it). Session
 cookie HttpOnly, `SameSite=Lax`, Secure unless `COOKIE_SECURE=false`. Pages are
 `Cache-Control: no-store`. Every route that checks a secret is rate limited per IP,

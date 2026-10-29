@@ -22,8 +22,9 @@
   --paper-sunk: #f3f5f9;    /* a tfoot, a code block: one step below a panel */
   --ink: #161e30;
   --ink-soft: #5a667d;
-  --ink-faint: #647089;     /* text at >= 4.5:1 on --paper */
+  --ink-faint: #5f6b84;     /* text at >= 4.5:1 on --paper, --page and --accent-soft */
   --rule: #dbe0ea;
+  --field-border: #7f8a9f;  /* an input's edge: >= 3:1 on --paper (WCAG 1.4.11); --rule is for dividers */
   --track: #e6eaf2;         /* the segmented nav, the bar behind a fill */
   --accent: #1f5fd1;
   --accent-soft: #e4edfc;
@@ -66,8 +67,9 @@
     --paper-sunk: #0e131d;
     --ink: #e5eaf4;
     --ink-soft: #97a3ba;
-    --ink-faint: #8591a8;
+    --ink-faint: #8a96ad;
     --rule: #26304380;
+    --field-border: #66738f;
     --track: #232d41;
     --accent: #6e9bf5;
     --accent-soft: #1b2a4a;
@@ -171,7 +173,7 @@ body {
   }
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 48rem) {
   /* Brand and Sign out share the first row; the nav takes the whole second. */
   .site-header nav {
     order: 3;
@@ -339,7 +341,7 @@ textarea {
   font: inherit;
   color: inherit;
   background: var(--paper);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius);
   padding: 6px 10px;
   max-width: 100%;
@@ -561,6 +563,10 @@ button,
     padding: 0;
     margin-block-end: var(--gap);
     overflow: visible;
+
+    > legend {
+      padding-inline: 0;
+    }
   }
 }
 
@@ -622,13 +628,16 @@ table {
 
   .num {
     text-align: end;
-    font: 13px var(--font-mono);
+    font-family: var(--font-mono);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
 
   /* A heading over a figure column keeps the sans caps of the other headings. */
   th.num {
-    font: 500 11px var(--font);
+    font-family: var(--font);
+    font-weight: 500;
+    font-size: 11px;
   }
 }
 
@@ -670,9 +679,15 @@ table {
   }
 }
 
-/* In / out / net / count, as one bordered strip with a divider between figures. */
+/* In / out / net / count, as one bordered strip with a divider between figures.
+   A grid, so a figure that does not fit wraps its cell to the next row instead of
+   shrinking under its neighbour. Each cell draws its own top and left edge as an
+   outset shadow: the dividers fall wherever the cells do, and the strip's
+   overflow clip trims the ones on the outer edge, so an unfilled slot in the last
+   row is just panel, not a grey block. */
 .totals {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
@@ -680,14 +695,9 @@ table {
   overflow: hidden;
 
   > div {
-    flex: 1 1 0;
     min-width: 0;
     padding: 12px 16px;
-    border-inline-end: 1px solid var(--rule);
-
-    &:last-child {
-      border-inline-end: 0;
-    }
+    box-shadow: -1px -1px 0 var(--rule);
   }
 
   dt {
@@ -705,18 +715,10 @@ table {
   }
 }
 
+/* A phone shows the figures stacked, one per row. */
 @media (max-width: 40rem) {
   .totals {
-    display: block;
-
-    > div {
-      border-inline-end: 0;
-      border-block-end: 1px solid var(--rule);
-
-      &:last-child {
-        border-block-end: 0;
-      }
-    }
+    grid-template-columns: 1fr;
   }
 }
 
@@ -868,8 +870,22 @@ td.cat {
 
 /* A row just saved through htmx, briefly marked so the change is noticed. */
 tr.saved {
-  background: var(--accent-soft);
-  transition: background 1.2s ease-out;
+  animation: saved-fade 1.6s ease-out;
+}
+
+@keyframes saved-fade {
+  from {
+    background: var(--accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tr.saved {
+    animation: none;
+  }
 }
 
 .rule-link {
@@ -879,7 +895,8 @@ tr.saved {
 }
 
 .panel.archived {
-  opacity: 0.7;
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
 }
 
 label.inline {

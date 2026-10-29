@@ -3,7 +3,6 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -43,16 +42,32 @@ func TestCSPHasNoUnsafeInline(t *testing.T) {
 	if middleware.CSP != want {
 		t.Errorf("CSP changed:\n got %s\nwant %s", middleware.CSP, want)
 	}
-	// The web fonts are a deliberate, narrow hole: these two hosts are the only
-	// external origins, and neither is allowed to serve script.
-	var hosts []string
-	for _, tok := range strings.Fields(middleware.CSP) {
-		if strings.Contains(tok, "://") {
-			hosts = append(hosts, strings.TrimSuffix(tok, ";"))
+	// The web fonts are a deliberate, narrow hole. Parse every directive and hold
+	// each source to a keyword or one of the two font hosts, and each host to the
+	// one directive that needs it, so widening img-src (or putting a font host in
+	// script-src) fails here even though the pinned string was edited to match.
+	const gapis, gstatic = "https://fonts.googleapis.com", "https://fonts.gstatic.com"
+	for _, d := range strings.Split(middleware.CSP, ";") {
+		f := strings.Fields(d)
+		if len(f) == 0 {
+			continue
 		}
-	}
-	if !slices.Equal(hosts, []string{"https://fonts.googleapis.com", "https://fonts.gstatic.com"}) {
-		t.Errorf("external hosts in the CSP = %q", hosts)
+		name := f[0]
+		for _, src := range f[1:] {
+			switch src {
+			case "'self'", "'none'":
+			case gapis:
+				if name != "style-src" {
+					t.Errorf("%s allows %s; only style-src may", name, src)
+				}
+			case gstatic:
+				if name != "font-src" {
+					t.Errorf("%s allows %s; only font-src may", name, src)
+				}
+			default:
+				t.Errorf("%s allows %q: not a keyword or a font host", name, src)
+			}
+		}
 	}
 	if strings.Contains(middleware.CSP, "unsafe-inline") {
 		t.Error("CSP allows unsafe-inline")

@@ -22,8 +22,8 @@ docker build -t budget . && docker run --rm -p 127.0.0.1:18080:8080 -e COOKIE_SE
 - **`dist/app.js` is build output that `go:embed` needs at compile time.** Run
   `deno task build` (or any make target) before `go build`/`go test`, or the
   handler refuses to start with a message saying so. Never commit dist/.
-- **No `style=` and no `on*=` in templates.** The CSP is `'self'` with no
-  `'unsafe-inline'`; an inline handler renders, returns 200, passes tests and does
+- **No `style=` and no `on*=` in templates.** The CSP is `'self'` plus two font
+  hosts (googleapis in `style-src`, gstatic in `font-src`) and no `'unsafe-inline'`; an inline handler renders, returns 200, passes tests and does
   nothing in a browser. `TestNoInlineStylesOrHandlers` enforces it. Behaviour goes
   in `src/ts`, styling in `static/styles.css`.
 - **New protected routes go through `route()` in handler.go.** A direct

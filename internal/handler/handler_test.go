@@ -401,8 +401,19 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 	// Every GET page, with data behind it, so the loops and conditionals in the
 	// templates actually run: an import, categories, a rule, a target, a token and
 	// the audit entries those writes leave.
-	anon := newEnv(t).browser()
-	pages := map[string]string{"/setup": anon.get("/setup").body}
+	// Each page must answer 200 with a full document: a redirect or an error page
+	// would pass the inline check below while hiding the real template.
+	pages := map[string]string{}
+	fetched := 0
+	fetch := func(b *browser, p string) {
+		r := b.get(p)
+		fetched++
+		if r.code != http.StatusOK {
+			t.Errorf("GET %s = %d (location %q), want 200", p, r.code, r.loc)
+		}
+		pages[p] = r.body
+	}
+	fetch(newEnv(t).browser(), "/setup")
 	e, owner := seeded(t)
 	_, groceries := firstTxnAndGroceries(t, owner)
 	owner.post("/rules", "/rules", url.Values{"pattern": {"checkers"}, "category": {groceries}, "account": {"all"}, "apply": {"1"}})
@@ -413,11 +424,11 @@ func TestNoInlineStylesOrHandlers(t *testing.T) {
 		"/budget/targets?month=2026-10", "/categories", "/rules", "/rules?txn=1", "/settings", "/tokens",
 		"/activity", "/fetch", "/import", "/accounts", "/members", "/password",
 	} {
-		pages[p] = owner.get(p).body
+		fetch(owner, p)
 	}
-	pages["/login"] = e.browser().get("/login").body
-	if len(pages) < 14 {
-		t.Fatalf("rendered only %d pages", len(pages))
+	fetch(e.browser(), "/login")
+	if fetched < 19 {
+		t.Fatalf("fetched only %d pages", fetched)
 	}
 	for p, body := range pages {
 		if !strings.Contains(body, "</html>") {
