@@ -46,21 +46,28 @@ CHECKERS → Groceries"; new imports are categorised as they arrive), set monthl
 count of skipped tests), Deno check/test/fmt/lint, then `govulncheck` (pinned in
 the Makefile; needs network).
 
-There are two production stacks, and they differ in who can reach the app, which
-decides `CLIENT_IP_SOURCE` (where the rate limits read a client's address from):
+Production is deployed with [Kamal](https://kamal-deploy.org) (`config/deploy.yml`)
+to the Docker host `home-docker`. The one-time host setup (kamal-proxy and the
+shared Cloudflare tunnel) is done by `~/dev/17xande.dev/infra`.
 
-- **Deployed: `compose.prod.yaml` with a Cloudflare tunnel.** `make deploy` builds
-  the image, pushes it to ghcr.io and pulls and restarts it on the Docker host over
-  ssh (`scripts/deploy.sh`). The tunnel is the only way in and nothing is published
-  on the host, so this stack sets `CLIENT_IP_SOURCE=cloudflare`. The tunnel's
-  ingress (`http://budget:8080`) is set in Cloudflare. The daily FNB fetch is not
-  part of this stack yet.
-- **`compose.yaml` behind Traefik.** Copy `.env.example` to `.env`, set
-  `BUDGET_HOST`, then `docker compose up -d --build`. It joins the external
-  `traefik_proxy` network like the other stacks and stores the database on the
-  `budget-data` volume. Leave `CLIENT_IP_SOURCE` unset here: Traefik passes a
-  client-sent `CF-Connecting-IP` through, so trusting it would let a client choose
-  its own rate-limit bucket. The cost is that every client shares one bucket.
+- **Deploy:** `make deploy` runs the test gate, then `kamal deploy`: it builds the
+  image locally, pushes it to `ghcr.io/17xande-dev/budget` and swaps it in once
+  `/health` passes. It logs in to ghcr.io with `gh auth token` (`.kamal/secrets`).
+- **Roll back:** `kamal rollback <version>` (`kamal app details` lists versions).
+- **Logs:** `make logs-prod` (`kamal app logs -f`).
+- **Hostname:** in the shared tunnel in Cloudflare, add a public hostname
+  `budget.17xande.dev` with service `http://kamal-proxy:80`.
+- The tunnel is the only way in and nothing is published on the host, so the app
+  runs with `CLIENT_IP_SOURCE=cloudflare` (rate limits read `CF-Connecting-IP`).
+  The database lives on the existing `budget_budget-data` Docker volume. The daily
+  FNB fetch is not part of the deployment yet.
+
+**`compose.yaml` behind Traefik** is the other way to run it. Copy `.env.example`
+to `.env`, set `BUDGET_HOST`, then `docker compose up -d --build`. It joins the
+external `traefik_proxy` network and stores the database on the `budget-data`
+volume. Leave `CLIENT_IP_SOURCE` unset there: Traefik passes a client-sent
+`CF-Connecting-IP` through, so trusting it would let a client choose its own
+rate-limit bucket. The cost is that every client shares one bucket.
 
 The setup token is in `docker compose logs budget` (or the host's equivalent).
 

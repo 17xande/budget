@@ -1,0 +1,53 @@
+# Kamal deploy for the Docker host (home-docker). `make deploy` runs the test
+# gate, then `kamal deploy`: build the image locally, push it to ghcr.io, and swap
+# it in behind kamal-proxy with a health check. Host-side setup (kamal-proxy and
+# the shared Cloudflare tunnel) lives in ~/dev/17xande.dev/infra.
+service: budget
+
+image: 17xande-dev/budget
+
+registry:
+  server: ghcr.io
+  username: 17xande
+  # Read from .kamal/secrets.
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# The host is linux/amd64. Building for it explicitly keeps an arm laptop honest.
+builder:
+  arch: amd64
+
+ssh:
+  user: ubuntu
+
+servers:
+  web:
+    hosts:
+      - home-docker
+    options:
+      memory: 512m
+
+# Cloudflare terminates TLS and the shared tunnel forwards the hostname to
+# http://kamal-proxy:80, so kamal-proxy serves plain http and asks for no cert.
+proxy:
+  ssl: false
+  host: budget.17xande.dev
+  app_port: 8080
+  healthcheck:
+    path: /health
+
+env:
+  clear:
+    # Cloudflare terminates https, so the browser always sees https and the
+    # session cookie stays Secure (the default).
+    COOKIE_SECURE: "true"
+    # Only the shared tunnel reaches kamal-proxy (it publishes nothing on the
+    # host), and Cloudflare sets CF-Connecting-IP, so that header is the client's
+    # address for the rate limits. Correct only while the tunnel is the sole way
+    # in; a setup with another route to the app must not set this.
+    CLIENT_IP_SOURCE: cloudflare
+
+# The EXISTING docker volume on the host (from the old compose stack, project
+# `budget`, volume `budget-data`). Keep this exact name so the database survives.
+volumes:
+  - "budget_budget-data:/data"

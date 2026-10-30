@@ -42,9 +42,13 @@ test: bundle
 vulncheck:
 	go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) ./...
 
-## deploy: test, build the image, push it to ghcr.io, pull and restart it on home-docker
-deploy:
-	./scripts/deploy.sh
+## deploy: test, then `kamal deploy` (build, push to ghcr.io, swap in on home-docker)
+deploy: test
+	kamal deploy
+
+## logs-prod: follow the production app's logs
+logs-prod:
+	kamal app logs -f
 
 ## fmt: format Go and TypeScript
 fmt:
@@ -77,4 +81,4 @@ up:
 logs:
 	docker compose logs -f budget
 
-.PHONY: help bundle run build test vulncheck fmt tidy reset-password recreate-db image up logs
+.PHONY: help bundle run build test vulncheck fmt tidy reset-password recreate-db image up logs deploy logs-prod
