@@ -2,7 +2,7 @@
 # binary alone. Templates and assets are go:embed'ed, so the runtime image has
 # no files and needs no shell.
 
-FROM denoland/deno:alpine-2.9.6 AS frontend
+FROM denoland/deno:alpine-2.9.8 AS frontend
 WORKDIR /app
 COPY deno.json deno.lock ./
 COPY src/ ./src/
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/budget 
 # whatever the image has at the mount path, ownership included.
 RUN mkdir -p /out/data && chown 65532:65532 /out/data
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 # Links the image to its repository, so GitHub's container registry gives a new
 # package the repository's visibility (a public repo gets a public package) and
 # lists it on the repo's page. Without this a package starts private.

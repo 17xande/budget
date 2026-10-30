@@ -38,7 +38,7 @@ services:
 
   cloudflared:
     # Pinned: `latest` would change what runs on the next `up --build`.
-    image: cloudflare/cloudflared:2026.10.0
+    image: cloudflare/cloudflared:2026.10.6
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
