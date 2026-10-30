@@ -112,17 +112,7 @@ func serve(cfg config.Config) error {
 
 	app := h.Server(middleware.RequireUser(users), secretLimit, mcp.Handler())
 
-	srv := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           app,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
-		IdleTimeout:       2 * time.Minute,
-		// The default is 1 MB. Header values (a client address among them) key
-		// the rate limiters, so keep them small.
-		MaxHeaderBytes: 64 << 10,
-	}
+	srv := newServer(":"+cfg.Port, app)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -152,6 +142,21 @@ func serve(cfg config.Config) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
+}
+
+// newServer is the http.Server with the app's timeouts and header limit.
+func newServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		// The default is 1 MB. Header values (a client address among them) key
+		// the rate limiters, so keep them small.
+		MaxHeaderBytes: 64 << 10,
+	}
 }
 
 // backupDir is where the settings page looks for backups: none when they are off.

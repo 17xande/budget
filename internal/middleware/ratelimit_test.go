@@ -68,3 +68,31 @@ func TestExhaustedDoesNotCreateBuckets(t *testing.T) {
 		t.Errorf("Exhausted created %d bucket(s)", len(l.buckets))
 	}
 }
+
+// The review's scenario: junk keys fill the map, then one address is hammered with
+// the handler's Exhausted-then-Allow pattern. The tier must still refuse.
+func TestExhaustedFailsClosedWhenFull(t *testing.T) {
+	now := time.Unix(1_000_000, 0)
+	l := &Limiter{buckets: map[string]*bucket{}, r: rate.Every(time.Hour), b: 5, max: 100,
+		now: func() time.Time { return now }}
+	for i := range 100 {
+		l.Allow("email:junk" + string(rune('a'+i%26)) + string(rune('a'+i/26)))
+	}
+	if len(l.buckets) != 100 {
+		t.Fatalf("setup: %d buckets", len(l.buckets))
+	}
+	refused := 0
+	for range 1000 {
+		if l.Exhausted("email:victim@example.com") {
+			refused++
+			continue
+		}
+		l.Allow("email:victim@example.com") // a failed login
+	}
+	if refused == 0 {
+		t.Error("a full map disabled the per-key tier: nothing was refused")
+	}
+	if len(l.buckets) != 100 {
+		t.Errorf("Exhausted created buckets: %d", len(l.buckets))
+	}
+}

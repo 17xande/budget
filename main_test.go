@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -99,5 +100,14 @@ func TestResetPassword(t *testing.T) {
 	// Never creates an account.
 	if err := resetPassword(s, "nobody@example.com", strings.NewReader("a brand new passphrase\n"), &out); err == nil {
 		t.Error("reset for an unknown address succeeded")
+	}
+}
+
+// Header values key the rate limiters, so the server must not accept the default
+// 1 MB of them.
+func TestServerCapsHeaders(t *testing.T) {
+	srv := newServer(":0", http.NotFoundHandler())
+	if srv.MaxHeaderBytes != 64<<10 {
+		t.Errorf("MaxHeaderBytes = %d, want %d", srv.MaxHeaderBytes, 64<<10)
 	}
 }

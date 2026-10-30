@@ -89,16 +89,22 @@ func (l *Limiter) get(key string, create bool) (*rate.Limiter, bool) {
 	if !create {
 		return nil, false
 	}
-	if len(l.buckets) >= l.max && (l.capSwept.IsZero() || now.Sub(l.capSwept) >= capSweepEvery) {
-		l.evict(now)
-		l.capSwept = now
-	}
-	if len(l.buckets) >= l.max {
+	if l.full(now) {
 		return nil, false
 	}
 	lim := rate.NewLimiter(l.r, l.b)
 	l.buckets[key] = &bucket{limiter: lim, lastSeen: now}
 	return lim, true
+}
+
+// full reports whether the map has no room for a new key, first making room by a
+// sweep if one has not run within capSweepEvery. The caller holds l.mu.
+func (l *Limiter) full(now time.Time) bool {
+	if len(l.buckets) >= l.max && (l.capSwept.IsZero() || now.Sub(l.capSwept) >= capSweepEvery) {
+		l.evict(now)
+		l.capSwept = now
+	}
+	return len(l.buckets) >= l.max
 }
 
 // Allow spends a token for key, reporting whether one was available. It fails
@@ -115,10 +121,19 @@ func (l *Limiter) Allow(key string) bool {
 //
 // A key that has never been charged is not exhausted, and asking does not create
 // a bucket: otherwise an attacker naming a fresh email on every request would
-// mint a bucket each time, for free.
+// mint a bucket each time, for free. The exception is a full map: there Allow
+// cannot record a failure for a new key either, so an unseen key is reported
+// exhausted (fail closed). Otherwise a flood of junk keys filling the map would
+// switch the per-key tier off; legitimate keys are refused only while it is full.
 func (l *Limiter) Exhausted(key string) bool {
-	lim, ok := l.get(key, false)
-	return ok && lim.TokensAt(l.now()) < 1
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := l.now()
+	if bk, ok := l.buckets[key]; ok {
+		bk.lastSeen = now
+		return bk.limiter.TokensAt(now) < 1
+	}
+	return l.full(now)
 }
 
 // evict drops buckets idle long enough to have refilled. The caller holds l.mu.
