@@ -52,11 +52,29 @@ func TestShortSetupTokenIgnored(t *testing.T) {
 	}
 }
 
-func TestTrustedProxies(t *testing.T) {
-	t.Setenv("TRUSTED_PROXIES", " 172.16.0.0/12, ,10.0.0.0/8")
-	c, _ := Load()
-	if len(c.TrustedProxies) != 2 {
-		t.Errorf("got %v", c.TrustedProxies)
+func TestClientIPSource(t *testing.T) {
+	c, err := Load()
+	if err != nil || c.ClientIPSource != "remote" {
+		t.Errorf("default = %q, %v; want remote", c.ClientIPSource, err)
+	}
+
+	t.Setenv("CLIENT_IP_SOURCE", "cloudflare")
+	if c, err := Load(); err != nil || c.ClientIPSource != "cloudflare" {
+		t.Errorf("cloudflare: %q, %v", c.ClientIPSource, err)
+	}
+
+	t.Setenv("CLIENT_IP_SOURCE", "everyone")
+	if _, err := Load(); err == nil {
+		t.Error("an unknown CLIENT_IP_SOURCE was accepted")
+	}
+}
+
+// The old setting is refused, not ignored: dropping it quietly would leave a
+// deployment believing it still had per-client limits.
+func TestTrustedProxiesIsRefused(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", "172.16.0.0/12")
+	if _, err := Load(); err == nil {
+		t.Error("TRUSTED_PROXIES was accepted")
 	}
 }
 

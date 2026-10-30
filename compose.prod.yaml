@@ -27,11 +27,11 @@ services:
       # Cloudflare terminates https, so the browser always sees https and the
       # session cookie stays Secure (the default).
       COOKIE_SECURE: "true"
-      # Only the tunnel can reach the port, and it arrives from this compose
-      # network, so trust that range for CF-Connecting-IP. Without it every
-      # request shares the proxy's address and the sign-in rate limit is one
-      # bucket for everyone.
-      TRUSTED_PROXIES: 172.16.0.0/12
+      # Only the tunnel can reach the port, and Cloudflare sets CF-Connecting-IP,
+      # so that header is the client's address for the rate limits. Correct only
+      # while the tunnel is the sole way in (nothing published on the host); a
+      # stack with another route to the app must not set this.
+      CLIENT_IP_SOURCE: cloudflare
     volumes:
       - budget-data:/data
     mem_limit: 512m

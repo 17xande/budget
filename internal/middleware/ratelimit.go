@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
 	"net/netip"
 	"sync"
@@ -141,12 +140,12 @@ func (l *Limiter) sweep() {
 	}
 }
 
-// ByIP wraps a handler so each client IP spends a token per request. trusted is
-// the proxy list ClientIP honours forwarding headers from.
-func (l *Limiter) ByIP(trusted []*net.IPNet) func(http.Handler) http.Handler {
+// ByIP wraps a handler so each client IP spends a token per request. source says
+// where ClientIP reads the address from.
+func (l *Limiter) ByIP(source ClientIPSource) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !l.Allow("ip:" + IPKey(ClientIP(r, trusted))) {
+			if !l.Allow("ip:" + IPKey(ClientIP(r, source))) {
 				http.Error(w, "Too many attempts. Please wait a minute and try again.", http.StatusTooManyRequests)
 				return
 			}

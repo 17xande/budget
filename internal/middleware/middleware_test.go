@@ -76,7 +76,7 @@ func TestCSPHasNoUnsafeInline(t *testing.T) {
 
 func TestLimiterByIP(t *testing.T) {
 	l := middleware.NewLimiter(rate.Every(time.Hour), 2)
-	h := l.ByIP(nil)(ok)
+	h := l.ByIP(middleware.ClientIPRemote)(ok)
 	codes := []int{}
 	for range 3 {
 		rec := httptest.NewRecorder()
@@ -116,7 +116,7 @@ func TestLimiterExhaustedDoesNotSpend(t *testing.T) {
 // fresh bucket.
 func TestLimiterByIPKeysIPv6ByPrefix(t *testing.T) {
 	l := middleware.NewLimiter(rate.Every(time.Hour), 2)
-	h := l.ByIP(nil)(ok)
+	h := l.ByIP(middleware.ClientIPRemote)(ok)
 	var codes []int
 	for _, addr := range []string{"[2001:db8:1:2::1]:1", "[2001:db8:1:2::2]:2", "[2001:db8:1:2:aaaa::3]:3"} {
 		rec := httptest.NewRecorder()

@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/17xande-dev/budget/internal/middleware"
 )
 
 type Config struct {
@@ -26,11 +29,12 @@ type Config struct {
 	// so the default is long; a password change ends every session regardless.
 	SessionTTL time.Duration
 
-	// TrustedProxies lists the CIDRs of proxies (Traefik) allowed to set
-	// X-Forwarded-For. Empty trusts nothing: every request is keyed on the raw
-	// peer address, which behind a proxy means everyone shares one rate-limit
-	// bucket. Safe, just coarse.
-	TrustedProxies []string
+	// ClientIPSource says where the address a request came from is read from, for
+	// the rate limits: remote (the TCP peer; the default and the safe one, but
+	// behind a proxy every client then shares one bucket), forwarded (leftmost
+	// X-Forwarded-For) or cloudflare (CF-Connecting-IP). Set it to what is true of
+	// the deployment; see middleware.ClientIPSource.
+	ClientIPSource middleware.ClientIPSource
 
 	// BackupDir receives a daily copy of the database; BackupKeep is how many
 	// days are kept there. BackupKeep 0 turns backups off.
@@ -71,11 +75,23 @@ const MinSetupTokenLength = 32
 
 func Load() (Config, error) {
 	c := Config{
-		Port:           getenv("PORT", "8080"),
-		DBPath:         getenv("DB_PATH", "data/budget.db"),
-		TrustedProxies: parseList(os.Getenv("TRUSTED_PROXIES")),
-		SetupToken:     strings.TrimSpace(os.Getenv("SETUP_TOKEN")),
+		Port:       getenv("PORT", "8080"),
+		DBPath:     getenv("DB_PATH", "data/budget.db"),
+		SetupToken: strings.TrimSpace(os.Getenv("SETUP_TOKEN")),
 	}
+
+	// Refused rather than ignored: the old setting trusted forwarding headers from
+	// a CIDR list, and silently dropping it would leave a deployment that set it
+	// believing it still had per-client limits.
+	if _, ok := os.LookupEnv("TRUSTED_PROXIES"); ok {
+		return Config{}, errors.New("config: TRUSTED_PROXIES has been replaced by CLIENT_IP_SOURCE " +
+			"(remote, forwarded or cloudflare); unset it, and set CLIENT_IP_SOURCE=cloudflare only behind the Cloudflare tunnel")
+	}
+	src, err := middleware.ParseClientIPSource(getenv("CLIENT_IP_SOURCE", string(middleware.ClientIPRemote)))
+	if err != nil {
+		return Config{}, fmt.Errorf("config: CLIENT_IP_SOURCE: %w", err)
+	}
+	c.ClientIPSource = src
 
 	switch v := getenv("COOKIE_SECURE", "true"); v {
 	case "true":

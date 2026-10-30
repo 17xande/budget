@@ -106,10 +106,9 @@ func serve(cfg config.Config) error {
 	// One per-IP ceiling for every route that verifies a secret. Generous enough
 	// that a fumbled password or two never trips it; the per-email tier inside
 	// the login handler is the tight one.
-	trusted := middleware.ParseTrustedProxies(cfg.TrustedProxies)
-	secretLimit := middleware.NewLimiter(rate.Every(10*time.Second), 10).ByIP(trusted)
+	secretLimit := middleware.NewLimiter(rate.Every(10*time.Second), 10).ByIP(cfg.ClientIPSource)
 
-	mcp := mcpserver.New(mcpserver.Deps{Users: users, Ledger: led, Budget: bud, Trusted: trusted, Version: version})
+	mcp := mcpserver.New(mcpserver.Deps{Users: users, Ledger: led, Budget: bud, ClientIPSource: cfg.ClientIPSource, Version: version})
 
 	app := h.Server(middleware.RequireUser(users), secretLimit, mcp.Handler())
 
@@ -120,6 +119,9 @@ func serve(cfg config.Config) error {
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       2 * time.Minute,
+		// The default is 1 MB. Header values (a client address among them) key
+		// the rate limiters, so keep them small.
+		MaxHeaderBytes: 64 << 10,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

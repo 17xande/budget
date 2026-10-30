@@ -44,7 +44,7 @@ func fetchEnv(t *testing.T, loginErr error) (*env, *fetch.Fetcher) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(h.Server(middleware.RequireUser(users), middleware.NewLimiter(rate.Inf, 1).ByIP(nil), nil))
+	srv := httptest.NewServer(h.Server(middleware.RequireUser(users), middleware.NewLimiter(rate.Inf, 1).ByIP(middleware.ClientIPRemote), nil))
 	t.Cleanup(srv.Close)
 	return &env{t: t, srv: srv, users: users, h: h}, f
 }

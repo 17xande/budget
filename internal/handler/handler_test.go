@@ -59,7 +59,7 @@ func newEnvWith(t *testing.T, cfg handler.Config) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	limit := middleware.NewLimiter(rate.Inf, 1).ByIP(nil)
+	limit := middleware.NewLimiter(rate.Inf, 1).ByIP(middleware.ClientIPRemote)
 	srv := httptest.NewServer(h.Server(middleware.RequireUser(users), limit, nil))
 	t.Cleanup(srv.Close)
 	return &env{t: t, srv: srv, users: users, h: h}

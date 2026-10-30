@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -44,9 +43,9 @@ type Deps struct {
 	Users  *auth.Store
 	Ledger *ledger.Store
 	Budget *budget.Store
-	// Trusted is the proxy list for client IPs, for the rate limits.
-	Trusted []*net.IPNet
-	Version string
+	// ClientIPSource says where the client address for the rate limits is read from.
+	ClientIPSource middleware.ClientIPSource
+	Version        string
 }
 
 // Tool is one registered tool, recorded as it is registered so a test can sweep
@@ -112,7 +111,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := middleware.IPKey(middleware.ClientIP(r, s.d.Trusted))
+		ip := middleware.IPKey(middleware.ClientIP(r, s.d.ClientIPSource))
 		if s.failures.Exhausted("fail:"+ip) || !s.calls.Allow("ip:"+ip) {
 			w.Header().Set("Retry-After", "60")
 			http.Error(w, "Too many requests.", http.StatusTooManyRequests)
@@ -134,7 +133,7 @@ func (s *Server) verify(_ context.Context, token string, r *http.Request) (*mcpa
 	rec, user, err := s.d.Users.APITokenUser(token, s.now())
 	switch {
 	case errors.Is(err, auth.ErrTokenNotFound):
-		s.failures.Allow("fail:" + middleware.IPKey(middleware.ClientIP(r, s.d.Trusted)))
+		s.failures.Allow("fail:" + middleware.IPKey(middleware.ClientIP(r, s.d.ClientIPSource)))
 		return nil, mcpauth.ErrInvalidToken
 	case err != nil:
 		log.Printf("mcp: verify token: %v", err)

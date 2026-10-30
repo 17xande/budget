@@ -56,7 +56,7 @@ func newFixture(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	f.mcp = mcpserver.New(mcpserver.Deps{Users: f.users, Ledger: f.ledger, Budget: f.budget, Version: "test"})
-	limit := middleware.NewLimiter(rate.Inf, 1).ByIP(nil)
+	limit := middleware.NewLimiter(rate.Inf, 1).ByIP(middleware.ClientIPRemote)
 	f.srv = httptest.NewServer(h.Server(middleware.RequireUser(f.users), limit, f.mcp.Handler()))
 	t.Cleanup(f.srv.Close)
 
