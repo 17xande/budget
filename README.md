@@ -42,13 +42,27 @@ and as overlapping as you like: each transaction is stored once. Add the starter
 CHECKERS → Groceries"; new imports are categorised as they arrive), set monthly
 **targets**, and the **overview** shows each month's spending against them.
 
-`make test` is the gate: gofmt, `go vet`, uncached Go tests, and Deno
-check/test/fmt/lint.
+`make test` is the gate: gofmt, `go vet`, uncached Go tests under `-race` (with a
+count of skipped tests), Deno check/test/fmt/lint, then `govulncheck` (pinned in
+the Makefile; needs network).
 
-Production: copy `.env.example` to `.env`, set `BUDGET_HOST`, then
-`docker compose up -d --build`. It joins the external `traefik_proxy` network like
-the other stacks and stores the database on the `budget-data` volume. The setup
-token is in `docker compose logs budget`.
+There are two production stacks, and they differ in who can reach the app, which
+decides `CLIENT_IP_SOURCE` (where the rate limits read a client's address from):
+
+- **Deployed: `compose.prod.yaml` with a Cloudflare tunnel.** `make deploy` builds
+  the image, pushes it to ghcr.io and pulls and restarts it on the Docker host over
+  ssh (`scripts/deploy.sh`). The tunnel is the only way in and nothing is published
+  on the host, so this stack sets `CLIENT_IP_SOURCE=cloudflare`. The tunnel's
+  ingress (`http://budget:8080`) is set in Cloudflare. The daily FNB fetch is not
+  part of this stack yet.
+- **`compose.yaml` behind Traefik.** Copy `.env.example` to `.env`, set
+  `BUDGET_HOST`, then `docker compose up -d --build`. It joins the external
+  `traefik_proxy` network like the other stacks and stores the database on the
+  `budget-data` volume. Leave `CLIENT_IP_SOURCE` unset here: Traefik passes a
+  client-sent `CF-Connecting-IP` through, so trusting it would let a client choose
+  its own rate-limit bucket. The cost is that every client shares one bucket.
+
+The setup token is in `docker compose logs budget` (or the host's equivalent).
 
 ### The daily FNB fetch
 
@@ -127,7 +141,7 @@ internal/validate       form validation shared by the web forms and the CLI
 internal/middleware     security headers/CSP, session enforcement, rate limits
 internal/handler        routes, pages, templates/, static/ (all go:embed'ed)
 src/ts                  TypeScript, bundled to internal/handler/static/dist
-docs/                   the FNB flow
+docs/                   the FNB flow (fnb-flow.md), the MCP endpoint (mcp.md)
 ```
 
 ## Decisions
@@ -171,7 +185,9 @@ claimed with a one-time token printed at boot, never a default password.
 template may carry a `style=` or `on*=` attribute (a test enforces it). Session
 cookie HttpOnly, `SameSite=Lax`, Secure unless `COOKIE_SECURE=false`. Pages are
 `Cache-Control: no-store`. Every route that checks a secret is rate limited per IP,
-and failed sign-ins additionally per email address. No HSTS from the app;
+and failed sign-ins additionally per email address. IPv6 clients are keyed by their /64,
+each limiter holds at most 10000 buckets and refuses newcomers when full, and argon2
+runs at most two at a time (each costs 64 MiB). No HSTS from the app;
 Traefik's job.
 
 **FNB.** No API exists for personal customers. A headless Chromium logs in
@@ -189,4 +205,4 @@ stop and fall back to manual upload rather than evade it.
 | An MCP tool to trigger the FNB fetch | no for now: it would let an AI cause a bank login | only if asked, after Phase 5 |
 | WAL mode | off (SQLite's default journal) / on. Two people never contend, so nothing forces it; backups use `VACUUM INTO`, which works the same either way | if writes ever wait on a long read (the fetch, an export) |
 | Off-host backups | by hand for now (`docker compose cp`, above) / a scheduled push to R2 or another machine | before the data is worth more than a re-import of the last three months |
-| CI | none (no remote yet) / GitHub Actions | when the repo gets a remote |
+| CI | none: the remote is public but there is no hosting CI; `make test` (with `-race` and `govulncheck`) is the gate / GitHub Actions | if a run on every push is wanted |
