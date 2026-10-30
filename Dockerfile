@@ -26,6 +26,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/budget 
 RUN mkdir -p /out/data && chown 65532:65532 /out/data
 
 FROM gcr.io/distroless/static-debian12:nonroot
+# Links the image to its repository, so GitHub's container registry gives a new
+# package the repository's visibility (a public repo gets a public package) and
+# lists it on the repo's page. Without this a package starts private.
+LABEL org.opencontainers.image.source="https://github.com/17xande-dev/budget"
 COPY --from=build /out/budget /budget
 # 65532 is distroless's nonroot uid.
 COPY --from=build --chown=65532:65532 /out/data /data

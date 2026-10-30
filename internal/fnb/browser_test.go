@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/fnb"
+	"github.com/17xande-dev/budget/internal/fnb"
 )
 
 // TestChromeLogin drives a real headless Chrome through a fake of FNB's login --

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/budget"
 )
 
 // formatMoney renders cents as South Africans write rand: "R 1 234.56", grouped

@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/budget"
-	"github.com/17xande/budget/internal/db"
-	"github.com/17xande/budget/internal/fetch"
-	"github.com/17xande/budget/internal/fnb"
-	"github.com/17xande/budget/internal/fnb/fnbtest"
-	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/db"
+	"github.com/17xande-dev/budget/internal/fetch"
+	"github.com/17xande-dev/budget/internal/fnb"
+	"github.com/17xande-dev/budget/internal/fnb/fnbtest"
+	"github.com/17xande-dev/budget/internal/ledger"
 )
 
 type env struct {

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/budget"
 )
 
 func TestFormatMoney(t *testing.T) {

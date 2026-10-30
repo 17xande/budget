@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/auth"
 )
 
 // SessionCookieName is the session cookie. Its SameSite is always Lax and it is

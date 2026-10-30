@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande/budget/internal/importer"
+	"github.com/17xande-dev/budget/internal/importer"
 )
 
 // Kinds of account. Spending reports will count cheque and credit card accounts;

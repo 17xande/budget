@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande/budget/internal/auth"
-	"github.com/17xande/budget/internal/budget"
-	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande-dev/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/middleware"
 )
 
 // --- AI access: API tokens for MCP clients -------------------------------------

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/db"
-	"github.com/17xande/budget/internal/importer"
-	"github.com/17xande/budget/internal/ledger"
+	"github.com/17xande-dev/budget/internal/db"
+	"github.com/17xande-dev/budget/internal/importer"
+	"github.com/17xande-dev/budget/internal/ledger"
 )
 
 var now = time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande-dev/budget/internal/middleware"
 )
 
 // Bundled assets: the stylesheet, a vendored htmx (see static/README.md) and

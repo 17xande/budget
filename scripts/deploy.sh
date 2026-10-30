@@ -10,7 +10,9 @@
 # names exactly what runs.
 set -euo pipefail
 
-IMAGE="${IMAGE:-ghcr.io/17xande/budget}"
+# Named after the repository, so a move to another owner follows without an edit.
+REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner | tr '[:upper:]' '[:lower:]')"
+IMAGE="${IMAGE:-ghcr.io/$REPO}"
 DEPLOY_HOST="${DEPLOY_HOST:-home-docker}"
 DEPLOY_DIR="${DEPLOY_DIR:-budget}"
 URL="${DEPLOY_URL:-https://budget.17xande.dev}"

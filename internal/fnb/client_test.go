@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/fnb"
-	"github.com/17xande/budget/internal/fnb/fnbtest"
+	"github.com/17xande-dev/budget/internal/fnb"
+	"github.com/17xande-dev/budget/internal/fnb/fnbtest"
 )
 
 func ofx(t *testing.T, name string) []byte {

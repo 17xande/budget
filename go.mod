@@ -1,4 +1,4 @@
-module github.com/17xande/budget
+module github.com/17xande-dev/budget
 
 go 1.27.1
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/auth"
 )
 
 func TestAPITokens(t *testing.T) {

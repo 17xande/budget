@@ -15,10 +15,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/17xande/budget/internal/budget"
-	"github.com/17xande/budget/internal/importer"
-	"github.com/17xande/budget/internal/ledger"
-	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande-dev/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/importer"
+	"github.com/17xande-dev/budget/internal/ledger"
+	"github.com/17xande-dev/budget/internal/middleware"
 	"github.com/justinas/nosurf"
 )
 

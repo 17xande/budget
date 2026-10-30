@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/17xande/budget/internal/auth"
+	"github.com/17xande-dev/budget/internal/auth"
 )
 
 // cheapParams keeps the suite fast. DefaultParams costs ~0.1s and 64 MiB per

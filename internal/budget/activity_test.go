@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/17xande/budget/internal/budget"
+	"github.com/17xande-dev/budget/internal/budget"
 )
 
 func TestUndo(t *testing.T) {

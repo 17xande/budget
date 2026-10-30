@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/17xande/budget/internal/db"
+	"github.com/17xande-dev/budget/internal/db"
 )
 
 var sast = mustLoadLocation("Africa/Johannesburg")

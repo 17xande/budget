@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/17xande/budget/internal/middleware"
+	"github.com/17xande-dev/budget/internal/middleware"
 	"golang.org/x/time/rate"
 )
 

@@ -17,7 +17,7 @@ services:
   budget:
     # Built and pushed by `make deploy` (scripts/deploy.sh); the host only pulls.
     # TAG is written to this directory's .env by that script.
-    image: ghcr.io/17xande/budget:${TAG:-latest}
+    image: ghcr.io/17xande-dev/budget:${TAG:-latest}
     restart: unless-stopped
     expose:
       - "8080"
