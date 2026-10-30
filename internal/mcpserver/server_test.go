@@ -221,6 +221,24 @@ func TestFailedTokensAreLimited(t *testing.T) {
 	}
 }
 
+// Rotating addresses inside one IPv6 /64 must not reset the failed-token budget.
+func TestFailedTokensAreLimitedPerIPv6Prefix(t *testing.T) {
+	f := newFixture(t)
+	h := f.mcp.Handler()
+	var codes []int
+	for i := range 8 {
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader("{}"))
+		req.Header.Set("Authorization", "Bearer bgt_guess")
+		req.RemoteAddr = fmt.Sprintf("[2001:db8:7:7::%x]:4000", i+1)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		codes = append(codes, rec.Code)
+	}
+	if !slices.Contains(codes, http.StatusTooManyRequests) {
+		t.Fatalf("rotating addresses in one /64 never hit the limit: %v", codes)
+	}
+}
+
 type txnPage struct {
 	Total        int `json:"total"`
 	Transactions []struct {

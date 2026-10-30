@@ -111,3 +111,21 @@ func TestLimiterExhaustedDoesNotSpend(t *testing.T) {
 		t.Fatal("not exhausted after spending the only token")
 	}
 }
+
+// An IPv6 client can use any address in its /64; rotating them must not earn a
+// fresh bucket.
+func TestLimiterByIPKeysIPv6ByPrefix(t *testing.T) {
+	l := middleware.NewLimiter(rate.Every(time.Hour), 2)
+	h := l.ByIP(nil)(ok)
+	var codes []int
+	for _, addr := range []string{"[2001:db8:1:2::1]:1", "[2001:db8:1:2::2]:2", "[2001:db8:1:2:aaaa::3]:3"} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("POST", "/login", nil)
+		req.RemoteAddr = addr
+		h.ServeHTTP(rec, req)
+		codes = append(codes, rec.Code)
+	}
+	if codes[0] != 200 || codes[1] != 200 || codes[2] != http.StatusTooManyRequests {
+		t.Fatalf("codes = %v, want 200 200 429", codes)
+	}
+}
