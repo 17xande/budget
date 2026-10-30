@@ -56,6 +56,26 @@ var DefaultParams = Params{
 	KeyLength:   32,
 }
 
+// maxConcurrentHashes bounds how many argon2 computations run at once, across
+// every caller. Each takes DefaultParams.Memory (64 MiB) for its duration, and the
+// per-IP limiter admits a burst of attempts at once: ten parallel logins measured
+// ~650 MiB against a 512 MiB container, so one client could take the server down.
+// Excess callers wait their turn rather than fail, which only costs them latency.
+const maxConcurrentHashes = 2
+
+var hashSlots = make(chan struct{}, maxConcurrentHashes)
+
+// deriveKey is the argon2 computation itself; a variable so a test can observe
+// how many run at once without allocating real argon2 memory.
+var deriveKey = argon2.IDKey
+
+// idKey is argon2.IDKey, held to maxConcurrentHashes at a time.
+func idKey(password, salt []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
+	hashSlots <- struct{}{}
+	defer func() { <-hashSlots }()
+	return deriveKey(password, salt, time, memory, threads, keyLen)
+}
+
 // maxVerifyMemory caps the memory a *stored* hash may ask for at verification
 // time. Without it a corrupted row claiming m=4194304 would try to allocate four
 // gibibytes on the first login attempt and take the server with it.
@@ -80,7 +100,7 @@ func HashPassword(password string, p Params) (string, error) {
 		return "", fmt.Errorf("auth: generate salt: %w", err)
 	}
 
-	key := argon2.IDKey([]byte(password), salt, p.Time, p.Memory, p.Parallelism, p.KeyLength)
+	key := idKey([]byte(password), salt, p.Time, p.Memory, p.Parallelism, p.KeyLength)
 
 	// The standard PHC encoding, which is what makes this hash readable by any
 	// other argon2 implementation. base64 without padding, as the format specifies.
@@ -105,7 +125,7 @@ func CheckPassword(hash, password string) bool {
 	if err != nil {
 		return false
 	}
-	got := argon2.IDKey([]byte(password), salt, p.Time, p.Memory, p.Parallelism, p.KeyLength)
+	got := idKey([]byte(password), salt, p.Time, p.Memory, p.Parallelism, p.KeyLength)
 	// Constant time, because the comparison is against a secret-derived value and
 	// an early return would leak how much of it matched.
 	return subtle.ConstantTimeCompare(got, want) == 1
